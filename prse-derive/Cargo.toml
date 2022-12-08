@@ -1,0 +1,23 @@
+[package]
+name = "prse-derive"
+version = "0.1.0"
+edition = "2021"
+authors = ["miam-miam100 <MiamMiam@mailbox.org>"]
+documentation = "https://docs.rs/prse/"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/miam-miam100/prse"
+readme = "README.md"
+description = "A helper macro crate for the prse crate."
+keywords = ["string", "parsing", "format-args"]
+categories = ["parsing"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "1.0.105" }
+quote = "1.0.21"
+proc-macro2 = "1.0.47"
+itertools = "0.10.5"
+nom = "7.1.1"
