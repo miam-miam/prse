@@ -1,4 +1,5 @@
-mod parse;
+mod instructions;
+mod invocation;
 
 extern crate proc_macro2;
 // #[macro_use]
@@ -14,10 +15,5 @@ pub fn parse(input: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn try_parse(input: TokenStream) -> TokenStream {
-    input
-}
-
-#[proc_macro]
-pub fn multi_parse(input: TokenStream) -> TokenStream {
     input
 }
