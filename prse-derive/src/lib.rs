@@ -15,7 +15,6 @@ use quote::ToTokens;
 #[proc_macro]
 pub fn parse(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ParseInvocation);
-    println!("{}", input.to_token_stream().to_string());
     input.to_token_stream().into()
 }
 

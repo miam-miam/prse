@@ -1,5 +1,5 @@
 use crate::instructions::{get_instructions, Instruction, Var};
-use proc_macro2::{Punct, Spacing, TokenStream};
+use proc_macro2::TokenStream;
 use quote::{ToTokens, TokenStreamExt};
 use syn::parse::{Parse, ParseStream};
 use syn::{Expr, LitStr, Token};
