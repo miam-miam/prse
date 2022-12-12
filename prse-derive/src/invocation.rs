@@ -1,8 +1,9 @@
-use crate::instructions::{get_instructions, Instruction, Var};
 use proc_macro2::TokenStream;
 use quote::{ToTokens, TokenStreamExt};
 use syn::parse::{Parse, ParseStream};
 use syn::{Expr, LitStr, Token};
+
+use crate::instructions::{get_instructions, Instruction, Var};
 
 #[derive(Clone)]
 pub struct ParseInvocation {
@@ -36,7 +37,7 @@ impl ToTokens for ParseInvocation {
         let input = self.input.clone().unwrap();
         let mut result = TokenStream::new();
         let start = quote! {
-            let mut __prse_input: &str = (#input).into();
+            let mut __prse_input: &str = &#input;
             let mut __prse_parse;
         };
         let mut idents_to_return = vec![];
@@ -45,8 +46,13 @@ impl ToTokens for ParseInvocation {
         for (idx, i) in self.instructions.iter().enumerate() {
             match i {
                 Instruction::Lit(l_string) => {
-                    result.append_all(quote! {
-                        (__prse_parse, __prse_input) = __prse_input.split_once(#l_string).unwrap();
+                    result.append_all(match l_string.parse() {
+                        Ok::<char, _>(c) => quote! {
+                            (__prse_parse, __prse_input) = __prse_input.split_once(#c).unwrap();
+                        },
+                        Err(_) => quote! {
+                            (__prse_parse, __prse_input) = __prse_input.split_once(#l_string).unwrap();
+                        }
                     });
                     if let Some(t) = store_token {
                         store_token = None;

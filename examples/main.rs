@@ -11,16 +11,16 @@ fn main() {
     println!("The register x would equal {x}.")
 }
 
-fn main1() {
+fn _main1() {
     let instructions = include_str!("input.txt");
     let x: i32 = instructions
         .lines()
         .filter(|l| l != &"noop")
         .map(|l| {
-            let mut __prse_input: &str = (l).into();
+            let mut __prse_input: &str = l;
             let mut __prse_parse;
             (__prse_parse, __prse_input) = l.split_once("addx ").unwrap();
-            (__prse_parse, __prse_input) = l.split_once(" ").unwrap();
+            (__prse_parse, __prse_input) = l.split_once(' ').unwrap();
             let __prse_1 = __prse_parse.parse().unwrap();
             __prse_parse = __prse_input;
             let __prse_3 = __prse_parse.parse().unwrap();
