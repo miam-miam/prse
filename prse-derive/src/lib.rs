@@ -1,16 +1,22 @@
 mod instructions;
 mod invocation;
 
+use invocation::ParseInvocation;
+
 extern crate proc_macro2;
-// #[macro_use]
-// extern crate quote;
+#[macro_use]
+extern crate quote;
+#[macro_use]
 extern crate syn;
 
 use proc_macro::TokenStream;
+use quote::ToTokens;
 
 #[proc_macro]
 pub fn parse(input: TokenStream) -> TokenStream {
-    input
+    let input = parse_macro_input!(input as ParseInvocation);
+    println!("{}", input.to_token_stream().to_string());
+    input.to_token_stream().into()
 }
 
 #[proc_macro]
