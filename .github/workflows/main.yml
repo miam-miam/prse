@@ -39,7 +39,8 @@ jobs:
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         with:
-          command: test --all
+          command: test
+          args: --all-targets
 
   lints:
     name: Lints
@@ -65,5 +66,5 @@ jobs:
       - name: Run cargo clippy
         uses: actions-rs/cargo@v1
         with:
-          command: clippy --all-targets
-          args: -- -D warnings
+          command: clippy
+          args: --all-targets -- -D warnings
