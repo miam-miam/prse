@@ -20,5 +20,7 @@ pub fn parse(input: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn try_parse(input: TokenStream) -> TokenStream {
-    input
+    let mut input = parse_macro_input!(input as ParseInvocation);
+    input.try_parse = true;
+    input.to_token_stream().into()
 }

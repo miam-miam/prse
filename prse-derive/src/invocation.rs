@@ -9,6 +9,7 @@ use crate::instructions::{get_instructions, Instruction, Var};
 pub struct ParseInvocation {
     pub input: Option<Expr>,
     pub instructions: Vec<Instruction>,
+    pub try_parse: bool,
 }
 
 impl Parse for ParseInvocation {
@@ -27,6 +28,7 @@ impl Parse for ParseInvocation {
 
         Ok(Self {
             input,
+            try_parse: false,
             instructions,
         })
     }
@@ -48,10 +50,12 @@ impl ToTokens for ParseInvocation {
                 Instruction::Lit(l_string) => {
                     result.append_all(match l_string.parse() {
                         Ok::<char, _>(c) => quote! {
-                            (__prse_parse, __prse_input) = __prse_input.split_once(#c).unwrap();
+                            (__prse_parse, __prse_input) = __prse_input.split_once(#c)
+                                .ok_or_else(|| ParseError::Literal {expected: (#c).into(), found: __prse_input.into()})?;
                         },
                         Err(_) => quote! {
-                            (__prse_parse, __prse_input) = __prse_input.split_once(#l_string).unwrap();
+                            (__prse_parse, __prse_input) = __prse_input.split_once(#l_string)
+                                .ok_or_else(|| ParseError::Literal {expected: (#l_string).into(), found: __prse_input.into()})?;
                         }
                     });
                     if let Some(t) = store_token {
@@ -68,7 +72,7 @@ impl ToTokens for ParseInvocation {
                         Var::Ident(i) => i,
                     };
                     store_token = Some(quote! {
-                        let #var = __prse_parse.parse().unwrap();
+                        let #var = __prse_parse.lending_parse()?;
                     });
                 }
                 Instruction::VecParse(_, _) => {}
@@ -83,14 +87,30 @@ impl ToTokens for ParseInvocation {
             })
         }
         let end = quote! {
-            ( #(#idents_to_return),* )
+            Ok::<_, ParseError>(( #(#idents_to_return),* ))
         };
         result.append_all(end);
 
-        tokens.append_all(quote! {
-            {
-                #result
+        tokens.append_all(if self.try_parse {
+            quote! {
+                {
+                    use prse::*;
+                    let __prse_func = || {
+                        #result
+                    };
+                    __prse_func()
+                }
             }
-        })
+        } else {
+            quote! {
+                {
+                    use prse::*;
+                    let __prse_func = || {
+                        #result
+                    };
+                    __prse_func().unwrap()
+                }
+            }
+        });
     }
 }

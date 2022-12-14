@@ -21,3 +21,4 @@ categories = ["parsing"]
 
 [dependencies]
 prse-derive = { version = "0.1.0", path = "prse-derive" }
+thiserror = "1.0.37"
