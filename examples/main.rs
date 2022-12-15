@@ -1,4 +1,4 @@
-use prse_derive::{parse, try_parse};
+use prse::{parse, try_parse};
 
 fn main() {
     let instructions = include_str!("input.txt");
