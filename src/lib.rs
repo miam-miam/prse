@@ -26,6 +26,8 @@ pub enum ParseError {
     Dyn(#[from] Box<dyn error::Error>),
     #[error("Invalid literal match (expected to find {expected:?}, found {found:?}).")]
     Literal { expected: String, found: String },
+    #[error("Invalid number of items (expected to find {expected:?}, found {found:?}.")]
+    Multi { expected: u8, found: u8 }
 }
 
 pub trait LendingFromStr<'a> {

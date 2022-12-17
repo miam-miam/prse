@@ -1,5 +1,6 @@
 use itertools::Itertools;
-use proc_macro2::{Ident, Span};
+use proc_macro2::{Ident, Span, TokenStream};
+use quote::ToTokens;
 use syn::parse::{Parse, ParseStream};
 use syn::parse_str;
 
@@ -7,6 +8,19 @@ use syn::parse_str;
 pub enum Var {
     Implied,
     Ident(Ident),
+}
+
+impl Var {
+    pub fn get_ident<'a>(&'a self, idents: &'a mut Vec<Ident>, idx: usize) -> TokenStream {
+        match self {
+            Var::Implied => {
+                idents.push(format_ident!("__prse_{}", idx));
+                let var = idents.last().unwrap();
+                quote!(let #var)
+            }
+            Var::Ident(i) => i.into_token_stream(),
+        }
+    }
 }
 
 impl Parse for Var {
