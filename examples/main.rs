@@ -5,8 +5,8 @@ fn main() {
 
     let x: i32 = instructions
         .lines()
-        .map(|l| parse!(l, "{}|{}|"))
-        .map(|(x, y): (u32, i32)| (x as i32) + y)
+        .map(|l| parse!(l, "{}|{:,:2}"))
+        .map(|(x, [y, yy]): (u32, [i32; 2])| (x as i32) + y + yy)
         .sum();
     println!("The register x would equal {x}.");
 }

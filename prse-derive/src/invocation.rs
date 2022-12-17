@@ -109,6 +109,12 @@ impl ToTokens for ParseInvocation {
                                 found: #i,
                             })??
                         ),* ];
+                        if __prse_iter.next().is_some() {
+                            return Err(ParseError::Multi {
+                                expected: #count,
+                                found: #count + 1,
+                            });
+                        }
                     });
                 }
             };
