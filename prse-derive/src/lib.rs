@@ -1,8 +1,3 @@
-mod instructions;
-mod invocation;
-
-use invocation::ParseInvocation;
-
 extern crate proc_macro2;
 #[macro_use]
 extern crate quote;
@@ -10,7 +5,13 @@ extern crate quote;
 extern crate syn;
 
 use proc_macro::TokenStream;
+
 use quote::ToTokens;
+
+use invocation::ParseInvocation;
+
+mod instructions;
+mod invocation;
 
 #[proc_macro]
 pub fn parse(input: TokenStream) -> TokenStream {

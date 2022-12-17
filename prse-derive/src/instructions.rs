@@ -127,10 +127,16 @@ fn parse_var(input: String, input_span: Span) -> syn::Result<Instruction> {
             })?;
 
             if sep.is_empty() {
-                return Err(syn::Error::new(input_span, "Seperator cannot be empty."));
+                return Err(syn::Error::new(input_span, "Separator cannot be empty."));
             }
 
             Ok(if num.trim().is_empty() {
+                if cfg!(feature = "alloc") {
+                    return Err(syn::Error::new(
+                        input_span,
+                        "Alloc feature is required to parse into a Vec.",
+                    ));
+                }
                 Instruction::VecParse(var, String::from(sep))
             } else {
                 match num.parse().map_err(|_| {
@@ -150,22 +156,23 @@ fn parse_var(input: String, input_span: Span) -> syn::Result<Instruction> {
 
 #[cfg(test)]
 mod tests {
-    use crate::instructions::get_instructions;
     use proc_macro2::Span;
+
+    use crate::instructions::get_instructions;
 
     #[test]
     fn test_instruction_pass() {
         use super::Instruction::*;
         use super::Var::*;
         #[rustfmt::skip]
-        let cases = [
+            let cases = [
             ("{}", vec![Parse(Implied)]),
             ("{} {}", vec![Parse(Implied), Lit(" ".into()), Parse(Implied)]),
             ("{}\n{}", vec![Parse(Implied), Lit("\n".into()), Parse(Implied)]),
             ("😇{}ángeĺ{}!", vec![Lit("😇".into()), Parse(Implied), Lit("ángeĺ".into()), Parse(Implied), Lit("!".into())]),
             ("{}{{{}}}{}", vec![Parse(Implied), Lit("{".into()), Parse(Implied), Lit("}".into()), Parse(Implied)]),
-            (" {}{{:}}}}{} ", vec![Lit(" ".into()),Parse(Implied), Lit("{:}}".into()), Parse(Implied), Lit(" ".into())]),
-            (" {} {}}}{}", vec![Lit(" ".into()),Parse(Implied), Lit(" ".into()), Parse(Implied), Lit("}".into()), Parse(Implied)]),
+            (" {}{{:}}}}{} ", vec![Lit(" ".into()), Parse(Implied), Lit("{:}}".into()), Parse(Implied), Lit(" ".into())]),
+            (" {} {}}}{}", vec![Lit(" ".into()), Parse(Implied), Lit(" ".into()), Parse(Implied), Lit("}".into()), Parse(Implied)]),
             ("{:}}:}", vec![VecParse(Implied, "}".into())]),
             ("{:{{}}:}", vec![VecParse(Implied, "{}".into())]),
             ("{hello}", vec![Parse(Ident(syn::Ident::new("hello", Span::call_site())))]),

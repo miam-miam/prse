@@ -1,3 +1,5 @@
+#![no_std]
+
 use prse::parse;
 
 fn main() {
@@ -8,7 +10,7 @@ fn main() {
         .map(|l| parse!(l, "{}|{:,:2}"))
         .map(|(x, [y, yy]): (u32, [i32; 2])| (x as i32) + y + yy)
         .sum();
-    println!("The register x would equal {x}.");
+    assert_eq!(x, 14)
 }
 
 // fn main() {

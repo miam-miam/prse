@@ -20,5 +20,9 @@ categories = ["parsing"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-prse-derive = { version = "0.1.0", path = "prse-derive" }
-thiserror = "1.0.37"
+prse-derive = { version = "0.1.0", path = "prse-derive", default-features = false }
+
+[features]
+std = ["alloc"]
+alloc = ["prse-derive/alloc"]
+default = ["std"]

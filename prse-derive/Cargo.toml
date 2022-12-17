@@ -16,8 +16,11 @@ categories = ["parsing"]
 proc-macro = true
 
 [dependencies]
-syn = { version = "1.0.105" }
+syn = { version = "1.0.105", default-features = false, features = ["parsing", "derive", "proc-macro", "clone-impls", "printing"] }
 quote = "1.0.21"
 proc-macro2 = "1.0.47"
 itertools = "0.10.5"
-nom = "7.1.1"
+
+[features]
+alloc = []
+default = ["alloc"]
