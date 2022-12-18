@@ -37,6 +37,11 @@ impl Parse for ParseInvocation {
 impl ToTokens for ParseInvocation {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let input = self.input.clone().unwrap();
+        let alloc = if cfg!(feature = "std") {
+            quote!(std)
+        } else {
+            quote!(alloc)
+        };
         let mut result = TokenStream::new();
         let start = quote! {
             let mut __prse_input: &str = &#input;
@@ -51,11 +56,11 @@ impl ToTokens for ParseInvocation {
                     result.append_all(match l_string.parse() {
                         Ok::<char, _>(c) => quote! {
                             (__prse_parse, __prse_input) = __prse_input.split_once(#c)
-                                .ok_or_else(|| ParseError::Literal {expected: (#c).into(), found: __prse_input.into()})?;
+                                .ok_or_else(|| ::prse::ParseError::Literal {expected: (#c).into(), found: __prse_input.into()})?;
                         },
                         Err(_) => quote! {
                             (__prse_parse, __prse_input) = __prse_input.split_once(#l_string)
-                                .ok_or_else(|| ParseError::Literal {expected: (#l_string).into(), found: __prse_input.into()})?;
+                                .ok_or_else(|| ::prse::ParseError::Literal {expected: (#l_string).into(), found: __prse_input.into()})?;
                         }
                     });
                     if let Some(t) = store_token {
@@ -77,7 +82,7 @@ impl ToTokens for ParseInvocation {
                     store_token = Some(quote! {
                         #var = __prse_parse.split(#sep)
                             .map(|p| p.lending_parse())
-                            .collect::<Result<Vec<_>, ParseError>>()?;
+                            .collect::<::core::result::Result<::#alloc::vec::Vec<_>, ::prse::ParseError>>()?;
                     });
                 }
                 Instruction::IterParse(var, sep) => {
@@ -104,13 +109,13 @@ impl ToTokens for ParseInvocation {
                         #iterator_token
                         #var = [ #(
                             __prse_iter.next()
-                            .ok_or_else(|| ParseError::Multi {
+                            .ok_or_else(|| ::prse::ParseError::Multi {
                                 expected: #count,
                                 found: #i,
                             })??
                         ),* ];
                         if __prse_iter.next().is_some() {
-                            return Err(ParseError::Multi {
+                            return Err(::prse::ParseError::Multi {
                                 expected: #count,
                                 found: #count + 1,
                             });
@@ -124,12 +129,12 @@ impl ToTokens for ParseInvocation {
         } else {
             result.append_all(quote! {
                 if !__prse_input.is_empty() {
-                    return Err(ParseError::Literal {expected: "".into(), found: __prse_input.into()})
+                    return Err(::prse::ParseError::Literal {expected: "".into(), found: __prse_input.into()})
                 }
             })
         }
 
-        result.append_all(quote! { Ok::<_, ParseError>(( #(#idents_to_return),* )) });
+        result.append_all(quote! { Ok::<_, ::prse::ParseError>(( #(#idents_to_return),* )) });
 
         let function = if self.try_parse {
             quote!(__prse_func())
@@ -139,7 +144,7 @@ impl ToTokens for ParseInvocation {
 
         tokens.append_all(quote! {
             {
-                use prse::*;
+                use ::prse::{ExtParseStr,LendingFromStr};
                 let mut __prse_func = || {
                     #result
                 };

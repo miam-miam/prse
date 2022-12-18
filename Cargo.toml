@@ -23,6 +23,6 @@ categories = ["parsing"]
 prse-derive = { version = "0.1.0", path = "prse-derive", default-features = false }
 
 [features]
-std = ["alloc"]
+std = ["alloc", "prse-derive/std"]
 alloc = ["prse-derive/alloc"]
 default = ["std"]

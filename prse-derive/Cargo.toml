@@ -22,5 +22,6 @@ proc-macro2 = "1.0.47"
 itertools = "0.10.5"
 
 [features]
+std = ["alloc"]
 alloc = []
-default = ["alloc"]
+default = ["std"]
