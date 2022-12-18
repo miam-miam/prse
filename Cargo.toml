@@ -14,7 +14,7 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/miam-miam100/prse"
 readme = "README.md"
 description = "A tiny string parsing utility."
-keywords = ["string", "parsing", "format-args"]
+keywords = ["string", "parsing", "format-args", "no-std"]
 categories = ["parsing"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
