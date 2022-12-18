@@ -14,27 +14,44 @@ use std::error;
 #[cfg(feature = "std")]
 use std::net::AddrParseError;
 
+/// The error returned when trying to parse a type using [`try_parse`](crate::try_parse) or [`LendingFromStr`](crate::LendingFromStr).
 #[derive(Debug)]
 pub enum ParseError {
+    /// The variant returned when an integer cannot be parsed.
     Int(ParseIntError),
+    /// The variant returned when a bool cannot be parsed.
     Bool(ParseBoolError),
+    /// The variant returned when a char cannot be parsed.
     Char(ParseCharError),
+    /// The variant returned when a float cannot be parsed.
     Float(ParseFloatError),
     #[cfg(feature = "std")]
+    /// The variant returned when an ip address cannot be parsed.
+    /// This variant is only enabled with the `std` feature.
     Addr(AddrParseError),
     #[cfg(feature = "std")]
+    /// The variant returned when you want to return an error that is not defined here.
+    /// When not using the `std` feature, `Dyn` is a unit variant as the
+    /// [`Error`](error::Error) trait is part of std.
     Dyn(Box<dyn error::Error>),
     #[cfg(not(feature = "std"))]
     Dyn,
+    /// The variant returned when [`parse!`](crate::parse) found an unexpected literal.
+    /// When not using the `alloc` feature, `Literal` is a unit variant.
     #[cfg(feature = "alloc")]
     Literal {
+        /// What it expected.
         expected: String,
+        /// What it actually found.
         found: String,
     },
     #[cfg(not(feature = "alloc"))]
     Literal,
+    /// The variant returned when parsing an array and finding more or less elements than what was expected.
     Multi {
+        /// The size of the array it was expecting.
         expected: u8,
+        /// The size of the array it found.
         found: u8,
     },
 }

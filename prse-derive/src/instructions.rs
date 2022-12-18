@@ -131,7 +131,7 @@ fn parse_var(input: String, input_span: Span) -> syn::Result<Instruction> {
             }
 
             Ok(if num.trim().is_empty() {
-                if cfg!(feature = "alloc") {
+                if !cfg!(feature = "alloc") {
                     return Err(syn::Error::new(
                         input_span,
                         "Alloc feature is required to parse into a Vec.",
