@@ -7,11 +7,9 @@ extern crate quote;
 #[macro_use]
 extern crate syn;
 
-use proc_macro::TokenStream;
-
-use quote::ToTokens;
-
 use invocation::ParseInvocation;
+use proc_macro::TokenStream;
+use quote::ToTokens;
 
 mod instructions;
 mod invocation;

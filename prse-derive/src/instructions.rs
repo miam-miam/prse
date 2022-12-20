@@ -92,8 +92,7 @@ pub fn get_instructions(input: &str, input_span: Span) -> syn::Result<Vec<Instru
                         continue;
                     }
                 }
-                if let Some(Instruction::Lit(_)) | None = instructions.last() {
-                } else {
+                if !matches!(instructions.last(), Some(Instruction::Lit(_)) | None) {
                     return Err(syn::Error::new(
                         input_span,
                         "Cannot have two captures without a string in between.",
@@ -119,12 +118,12 @@ fn parse_var(input: String, input_span: Span) -> syn::Result<Instruction> {
     match input.split_once(':') {
         Some((var, split)) => {
             let var = parse_str(var)?;
-            let (sep, num) = split.rsplit_once(':').ok_or_else(|| {
-                syn::Error::new(
+            let Some((sep, num)) = split.rsplit_once(':') else {
+                return Err(syn::Error::new(
                     input_span,
                     "When specifying a multi parse, it must be of the form :<sep>:<count>.",
-                )
-            })?;
+                ));
+            };
 
             if sep.is_empty() {
                 return Err(syn::Error::new(input_span, "Separator cannot be empty."));
@@ -139,14 +138,15 @@ fn parse_var(input: String, input_span: Span) -> syn::Result<Instruction> {
                 }
                 Instruction::VecParse(var, String::from(sep))
             } else {
-                match num.parse().map_err(|_| {
-                    syn::Error::new(
-                        input_span,
-                        format!("Expected a count between 0 and 255 but found {num}."),
-                    )
-                })? {
-                    0_u8 => Instruction::IterParse(var, String::from(sep)),
-                    x => Instruction::MultiParse(var, String::from(sep), x),
+                match num.parse() {
+                    Ok(0_u8) => Instruction::IterParse(var, String::from(sep)),
+                    Ok(x) => Instruction::MultiParse(var, String::from(sep), x),
+                    Err(_) => {
+                        return Err(syn::Error::new(
+                            input_span,
+                            format!("Expected a count between 0 and 255 but found {num}."),
+                        ));
+                    }
                 }
             })
         }
@@ -165,7 +165,7 @@ mod tests {
         use super::Instruction::*;
         use super::Var::*;
         #[rustfmt::skip]
-            let cases = [
+        let cases = [
             ("{}", vec![Parse(Implied)]),
             ("{} {}", vec![Parse(Implied), Lit(" ".into()), Parse(Implied)]),
             ("{}\n{}", vec![Parse(Implied), Lit("\n".into()), Parse(Implied)]),
@@ -175,6 +175,7 @@ mod tests {
             (" {} {}}}{}", vec![Lit(" ".into()), Parse(Implied), Lit(" ".into()), Parse(Implied), Lit("}".into()), Parse(Implied)]),
             ("{:}}:}", vec![VecParse(Implied, "}".into())]),
             ("{:{{}}:}", vec![VecParse(Implied, "{}".into())]),
+            ("{:{{}}: }", vec![VecParse(Implied, "{}".into())]),
             ("{hello}", vec![Parse(Ident(syn::Ident::new("hello", Span::call_site())))]),
             ("{:,:5}", vec![MultiParse(Implied, ",".into(), 5)]),
             ("{:,:0}", vec![IterParse(Implied, ",".into())]),

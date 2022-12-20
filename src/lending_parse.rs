@@ -1,16 +1,5 @@
-#[cfg(feature = "alloc")]
-pub extern crate alloc;
-
-#[cfg(feature = "alloc")]
-use alloc::string::String;
 use core::num::*;
 use core::str::FromStr;
-#[cfg(feature = "std")]
-use std::ffi::OsString;
-#[cfg(feature = "std")]
-use std::net::*;
-#[cfg(feature = "std")]
-use std::path::PathBuf;
 
 use crate::parse_error::ParseError;
 
@@ -62,18 +51,23 @@ impl_lending_from_str!(NonZeroU8 NonZeroU16 NonZeroU32 NonZeroU64 NonZeroU128 No
 impl_lending_from_str!(NonZeroI8 NonZeroI16 NonZeroI32 NonZeroI64 NonZeroI128 NonZeroIsize);
 
 #[cfg(feature = "alloc")]
-impl_lending_from_str_infallible!(String);
+mod impl_alloc {
+    pub extern crate alloc;
+    use super::{FromStr, LendingFromStr, ParseError};
+    use alloc::string::String;
+
+    impl_lending_from_str_infallible!(String);
+}
 
 #[cfg(feature = "std")]
-impl_lending_from_str_infallible!(OsString PathBuf);
-#[cfg(feature = "std")]
-impl_lending_from_str!(IpAddr SocketAddr Ipv4Addr Ipv6Addr SocketAddrV4 SocketAddrV6);
+mod impl_std {
+    use super::{FromStr, LendingFromStr, ParseError};
+    use std::ffi::OsString;
+    use std::net::*;
+    use std::path::PathBuf;
 
-#[doc(hidden)]
-mod __private {
-    pub trait Sealed {}
-
-    impl Sealed for str {}
+    impl_lending_from_str_infallible!(OsString PathBuf);
+    impl_lending_from_str!(IpAddr SocketAddr Ipv4Addr Ipv6Addr SocketAddrV4 SocketAddrV6);
 }
 
 /// An str extension trait to allow you to call the `from_str` from [`LendingFromStr`]
@@ -91,4 +85,11 @@ impl ExtParseStr for str {
     fn lending_parse<'a, F: LendingFromStr<'a>>(&'a self) -> Result<F, ParseError> {
         LendingFromStr::from_str(self)
     }
+}
+
+#[doc(hidden)]
+mod __private {
+    pub trait Sealed {}
+
+    impl Sealed for str {}
 }

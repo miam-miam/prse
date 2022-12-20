@@ -8,8 +8,6 @@ extern crate alloc;
 use alloc::string::String;
 
 #[cfg(feature = "std")]
-use std::borrow::Borrow;
-#[cfg(feature = "std")]
 use std::error;
 #[cfg(feature = "std")]
 use std::net::AddrParseError;
@@ -59,6 +57,8 @@ pub enum ParseError {
 #[cfg(feature = "std")]
 impl error::Error for ParseError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        use std::borrow::Borrow;
+
         match self {
             ParseError::Int(source) => Some(source),
             ParseError::Bool(source) => Some(source),
