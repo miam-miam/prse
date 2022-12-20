@@ -7,8 +7,8 @@ use crate::instructions::{get_instructions, Instruction};
 
 #[derive(Clone)]
 pub struct ParseInvocation {
-    pub input: Expr,
-    pub instructions: Vec<Instruction>,
+    input: Expr,
+    instructions: Vec<Instruction>,
     pub try_parse: bool,
 }
 

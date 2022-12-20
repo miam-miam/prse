@@ -52,7 +52,7 @@ impl_lending_from_str!(NonZeroI8 NonZeroI16 NonZeroI32 NonZeroI64 NonZeroI128 No
 
 #[cfg(feature = "alloc")]
 mod impl_alloc {
-    pub extern crate alloc;
+    extern crate alloc;
     use super::{FromStr, LendingFromStr, ParseError};
     use alloc::string::String;
 
