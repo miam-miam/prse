@@ -1,31 +1,26 @@
+#![no_std]
+
+extern crate alloc;
+
 #[cfg(test)]
 mod tests {
+    use alloc::string::String;
+    use alloc::vec;
+    use alloc::vec::Vec;
     use prse::{parse, try_parse, ParseError};
 
     #[test]
-    fn ui() {
-        let t = trybuild::TestCases::new();
-        t.compile_fail("ui/*.rs");
-    }
-
-    #[test]
     fn use_other_strings() {
-        let s = String::from("Dashing through the snow.");
         let r = r#"Dashing through the snow."#;
-        let thing: &str = parse!(s, "Dashing through the {}.");
-        assert_eq!(thing, "snow");
         let thing: &str = parse!(r, "Dashing through the {}.");
         assert_eq!(thing, "snow");
 
-        let thing: &str = parse!(s, r#"Dashing through the {}."#);
+        let thing: &str = parse!(r, r#"Dashing through the {}."#);
         assert_eq!(thing, "snow");
 
         let c = "a is a char.";
         let char: char = parse!(c, "{} is a char.");
         assert_eq!(char, 'a');
-        let l = "a is a char.";
-        let string: String = parse!(l, "{} is a char.");
-        assert_eq!(string, "a");
     }
 
     #[test]
@@ -40,9 +35,6 @@ mod tests {
             })
         );
         let case: Result<u32, _> = try_parse!(l, "I love the following: {}.");
-        assert!(case.is_err());
-
-        let case: Result<Vec<u32>, _> = try_parse!(l, "I love the following: {:, :}.");
         assert!(case.is_err());
 
         let case: Result<[&str; 2], _> = try_parse!(l, "I love the following: {:, :2}.");
@@ -61,5 +53,24 @@ mod tests {
                 found: 3
             })
         );
+    }
+
+    #[test]
+    fn general_tests() {
+        let l = "(5,6) has [0,2,42]";
+        let mut x = 5_u32;
+        let mut y = 5_i32;
+        let v: [u32; 3] = parse!(l, "({x},{y}) has [{:,:3}]");
+        assert_eq!((x, y, v), (5, 6, [0, 2, 42]));
+
+        let p: u32 = parse!(l, "(5,6) has [{:,:0}]")
+            .flat_map(|i: Result<u32, _>| i.ok())
+            .sum();
+
+        assert_eq!(p, 44);
+
+        let p: Vec<u32> = parse!(l, "(5,6) has [{:,:  }]");
+
+        assert_eq!(p, vec![0, 2, 42]);
     }
 }

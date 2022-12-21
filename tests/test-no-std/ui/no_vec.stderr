@@ -1,0 +1,5 @@
+error: alloc feature is required to parse into a Vec.
+ --> ui/no_vec.rs:5:33
+  |
+5 |     let v: Vec<u32> = parse!(l, "test: {:,:   }");
+  |                                 ^^^^^^^^^^^^^^^^

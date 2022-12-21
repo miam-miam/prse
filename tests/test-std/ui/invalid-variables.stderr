@@ -1,0 +1,23 @@
+error: expected identifier
+ --> ui/invalid-variables.rs:6:5
+  |
+6 |     parse!(l, "test: {foo()}");
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `parse` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: expected identifier
+ --> ui/invalid-variables.rs:7:5
+  |
+7 |     parse!(l, "test: {0}");
+  |     ^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `parse` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: expected identifier
+ --> ui/invalid-variables.rs:8:5
+  |
+8 |     parse!(l, "test: {-8}");
+  |     ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `parse` (in Nightly builds, run with -Z macro-backtrace for more info)

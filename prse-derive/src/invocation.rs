@@ -38,6 +38,7 @@ impl ToTokens for ParseInvocation {
             quote!(alloc)
         };
         let mut result = quote_spanned! { input.span() =>
+            #[allow(clippy::needless_borrow)]
             let mut __prse_input: &str = &#input;
             let mut __prse_parse;
         };
@@ -52,10 +53,17 @@ impl ToTokens for ParseInvocation {
                         |s: char| s.to_token_stream(),
                     );
 
-                    result.append_all(quote! {
+                    result.append_all(if cfg!(feature = "alloc") {
+                        quote! {
                             (__prse_parse, __prse_input) = __prse_input.split_once(#l_string)
                                 .ok_or_else(|| ::prse::ParseError::Literal {expected: (#l_string).into(), found: __prse_input.into()})?;
-                        });
+                        }
+                    } else {
+                        quote! {
+                            (__prse_parse, __prse_input) = __prse_input.split_once(#l_string)
+                                .ok_or_else(|| ::prse::ParseError::Literal)?;
+                        }
+                    });
 
                     if let Some(t) = store_token {
                         store_token = None;
@@ -119,9 +127,17 @@ impl ToTokens for ParseInvocation {
                 }
             };
         }
-        result.append_all(store_token.map_or_else(|| quote! {
-            if !__prse_input.is_empty() {
-                return Err(::prse::ParseError::Literal {expected: "".into(), found: __prse_input.into()})
+        result.append_all(store_token.map_or_else(|| if cfg!(feature = "alloc") {
+            quote! {
+                if !__prse_input.is_empty() {
+                    return Err(::prse::ParseError::Literal {expected: "".into(), found: __prse_input.into()})
+                }
+            }
+        } else {
+            quote! {
+                if !__prse_input.is_empty() {
+                    return Err(::prse::ParseError::Literal)
+                }
             }
         }, |t| quote! { __prse_parse = __prse_input; #t }));
 

@@ -34,7 +34,11 @@ impl Parse for Var {
         if input.is_empty() {
             Ok(Var::Implied)
         } else {
-            input.parse().map(Var::Ident)
+            let res = input.parse::<Ident>().map(Var::Ident)?;
+            if !input.is_empty() {
+                return Err(input.error("expected identifier"));
+            }
+            Ok(res)
         }
     }
 }
@@ -131,19 +135,19 @@ fn parse_var(input: String, input_span: Span) -> syn::Result<Instruction> {
             let Some((sep, num)) = split.rsplit_once(':') else {
                 return Err(syn::Error::new(
                     input_span,
-                    "When specifying a multi parse, it must be of the form :<sep>:<count>.",
+                    "invalid multi parse, it must be of the form <var>:<sep>:<count>.",
                 ));
             };
 
             if sep.is_empty() {
-                return Err(syn::Error::new(input_span, "Separator cannot be empty."));
+                return Err(syn::Error::new(input_span, "separator cannot be empty."));
             }
 
             Ok(if num.trim().is_empty() {
                 if !cfg!(feature = "alloc") {
                     return Err(syn::Error::new(
                         input_span,
-                        "Alloc feature is required to parse into a Vec.",
+                        "alloc feature is required to parse into a Vec.",
                     ));
                 }
                 Instruction::VecParse(var, String::from(sep))
@@ -154,7 +158,7 @@ fn parse_var(input: String, input_span: Span) -> syn::Result<Instruction> {
                     Err(_) => {
                         return Err(syn::Error::new(
                             input_span,
-                            format!("Expected a count between 0 and 255 but found {num}."),
+                            format!("expected a number between 0 and 255 but found {num}."),
                         ));
                     }
                 }
