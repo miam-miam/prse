@@ -41,11 +41,11 @@ jobs:
           override: true
 
       - name: Run cargo test
-        working-directory: = ${{ matrix.dir }}
         uses: actions-rs/cargo@v1
         with:
           command: test
           args: --all-targets
+        working-directory: = ${{ matrix.dir }}
 
   lints:
     name: Lints
