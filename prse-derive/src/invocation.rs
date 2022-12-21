@@ -1,6 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::{ToTokens, TokenStreamExt};
 use syn::parse::{Parse, ParseStream};
+use syn::spanned::Spanned;
 use syn::{Expr, LitStr, Token};
 
 use crate::instructions::{get_instructions, Instruction};
@@ -36,7 +37,7 @@ impl ToTokens for ParseInvocation {
         } else {
             quote!(alloc)
         };
-        let mut result = quote! {
+        let mut result = quote_spanned! { input.span() =>
             let mut __prse_input: &str = &#input;
             let mut __prse_parse;
         };

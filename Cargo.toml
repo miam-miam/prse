@@ -2,6 +2,9 @@
 members = [
     ".",
     "prse-derive",
+    "tests/test-std",
+    "tests/test-alloc",
+    "tests/test-no-std"
 ]
 
 [package]
@@ -22,6 +25,7 @@ exclude = [".github", "examples"]
 
 [dependencies]
 prse-derive = { version = "0.1.0", path="prse-derive", default-features = false }
+anyhow = "1.0.68"
 
 [features]
 std = ["alloc", "prse-derive/std"]

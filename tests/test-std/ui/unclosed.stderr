@@ -1,0 +1,23 @@
+error: Expected to find } bracket. Consider adding a } bracket to close the open { bracket.
+ --> ui/unclosed.rs:8:15
+  |
+8 |     parse!(l, "test: {x");
+  |               ^^^^^^^^^^
+
+error: Expected to find } bracket. Consider adding a } bracket to close the open { bracket.
+ --> ui/unclosed.rs:9:28
+  |
+9 |     let y: i32 = parse!(l, "test: {");
+  |                            ^^^^^^^^^
+
+error: Found unexpected } bracket. Consider escaping it by changing it to }}.
+  --> ui/unclosed.rs:11:15
+   |
+11 |     parse!(l, "test: x}");
+   |               ^^^^^^^^^^
+
+error: Found unexpected } bracket. Consider escaping it by changing it to }}.
+  --> ui/unclosed.rs:12:28
+   |
+12 |     let y: i32 = parse!(l, "test: }");
+   |                            ^^^^^^^^^

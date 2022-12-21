@@ -21,6 +21,12 @@ impl Var {
             Var::Ident(i) => i.into_token_stream(),
         }
     }
+
+    pub fn add_span(&mut self, span: Span) {
+        if let Var::Ident(i) = self {
+            i.set_span(span)
+        }
+    }
 }
 
 impl Parse for Var {
@@ -69,7 +75,7 @@ pub fn get_instructions(input: &str, input_span: Span) -> syn::Result<Vec<Instru
                 } else {
                     return Err(syn::Error::new(
                         input_span,
-                        "Unescaped }, consider changing to }}.",
+                        "Found unexpected } bracket. Consider escaping it by changing it to }}.",
                     ));
                 }
             }
@@ -106,7 +112,10 @@ pub fn get_instructions(input: &str, input_span: Span) -> syn::Result<Vec<Instru
         }
     }
     if var_mode {
-        return Err(syn::Error::new(input_span, "Unclosed {."));
+        return Err(syn::Error::new(
+            input_span,
+            "Expected to find } bracket. Consider adding a } bracket to close the open { bracket.",
+        ));
     }
     if !val.is_empty() {
         instructions.push(Instruction::Lit(val));
@@ -117,7 +126,8 @@ pub fn get_instructions(input: &str, input_span: Span) -> syn::Result<Vec<Instru
 fn parse_var(input: String, input_span: Span) -> syn::Result<Instruction> {
     match input.split_once(':') {
         Some((var, split)) => {
-            let var = parse_str(var)?;
+            let mut var: Var = parse_str(var)?;
+            var.add_span(input_span);
             let Some((sep, num)) = split.rsplit_once(':') else {
                 return Err(syn::Error::new(
                     input_span,
@@ -150,7 +160,11 @@ fn parse_var(input: String, input_span: Span) -> syn::Result<Instruction> {
                 }
             })
         }
-        None => Ok(Instruction::Parse(parse_str(&input)?)),
+        None => {
+            let mut var: Var = parse_str(&input)?;
+            var.add_span(input_span);
+            Ok(Instruction::Parse(var))
+        }
     }
 }
 
