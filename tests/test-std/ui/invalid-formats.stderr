@@ -1,0 +1,33 @@
+error: expected `,`
+ --> ui/invalid-formats.rs:7:5
+  |
+7 |     parse!("test: {x}");
+  |     ^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `parse` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: unexpected token
+ --> ui/invalid-formats.rs:8:26
+  |
+8 |     parse!(l, "test: {x}", 4);
+  |                          ^
+
+error: unexpected end of input, expected string literal
+ --> ui/invalid-formats.rs:9:5
+  |
+9 |     parse!("test: {x}",);
+  |     ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `parse` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: expected string literal
+  --> ui/invalid-formats.rs:10:25
+   |
+10 |     parse!("test: {x}", l);
+   |                         ^
+
+error: expected string literal
+  --> ui/invalid-formats.rs:11:15
+   |
+11 |     parse!(l, 2);
+   |               ^

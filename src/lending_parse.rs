@@ -33,6 +33,7 @@ macro_rules! impl_lending_from_str {
     };
 }
 
+#[cfg(feature = "alloc")]
 macro_rules! impl_lending_from_str_infallible {
     ( $( $Ty: ty )+) => {
         $(

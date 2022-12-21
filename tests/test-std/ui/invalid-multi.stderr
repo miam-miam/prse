@@ -1,0 +1,29 @@
+error: invalid multi parse, it must be of the form <var>:<sep>:<count>.
+ --> ui/invalid-multi.rs:6:15
+  |
+6 |     parse!(l, "test: {:}");
+  |               ^^^^^^^^^^^
+
+error: separator cannot be empty.
+ --> ui/invalid-multi.rs:7:15
+  |
+7 |     parse!(l, "test: {::}");
+  |               ^^^^^^^^^^^^
+
+error: expected a number between 0 and 255 but found 999.
+ --> ui/invalid-multi.rs:8:15
+  |
+8 |     parse!(l, "test: {:,:999}");
+  |               ^^^^^^^^^^^^^^^^
+
+error: expected a number between 0 and 255 but found -1.
+ --> ui/invalid-multi.rs:9:15
+  |
+9 |     parse!(l, "test: {:,:-1}");
+  |               ^^^^^^^^^^^^^^^
+
+error: expected a number between 0 and 255 but found ,.
+  --> ui/invalid-multi.rs:10:15
+   |
+10 |     parse!(l, "test: {:,:,}");
+   |               ^^^^^^^^^^^^^^

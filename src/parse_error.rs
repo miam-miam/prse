@@ -32,6 +32,9 @@ pub enum ParseError {
     /// When not using the `std` feature, `Dyn` is a unit variant as the
     /// [`Error`](error::Error) trait is part of std.
     Dyn(Box<dyn error::Error>),
+    /// The variant returned when you want to return an error that is not defined here.
+    /// When not using the `std` feature, `Dyn` is a unit variant as the
+    /// [`Error`](error::Error) trait is part of std.
     #[cfg(not(feature = "std"))]
     Dyn,
     /// The variant returned when [`parse!`](crate::parse) found an unexpected literal.
@@ -43,6 +46,8 @@ pub enum ParseError {
         /// What it actually found.
         found: String,
     },
+    /// The variant returned when [`parse!`](crate::parse) found an unexpected literal.
+    /// When not using the `alloc` feature, `Literal` is a unit variant.
     #[cfg(not(feature = "alloc"))]
     Literal,
     /// The variant returned when parsing an array and finding more or less elements than what was expected.
@@ -96,6 +101,47 @@ impl core::fmt::Display for ParseError {
                 fmt,
                 "invalid number of items (expected to find {expected:?}, found {found:?})"
             ),
+        }
+    }
+}
+
+impl PartialEq for ParseError {
+    fn eq(&self, other: &Self) -> bool {
+        use ParseError::*;
+
+        match (self, other) {
+            (Int(x), Int(y)) if x == y => true,
+            (Bool(x), Bool(y)) if x == y => true,
+            (Char(x), Char(y)) if x == y => true,
+            (Float(x), Float(y)) if x == y => true,
+            #[cfg(feature = "std")]
+            (Addr(x), Addr(y)) if x == y => true,
+            #[cfg(not(feature = "std"))]
+            (Dyn, Dyn) => true,
+            #[cfg(feature = "alloc")]
+            (
+                Literal {
+                    expected: lx,
+                    found: ly,
+                },
+                Literal {
+                    expected: rx,
+                    found: ry,
+                },
+            ) if lx == rx && ly == ry => true,
+            #[cfg(not(feature = "alloc"))]
+            (Literal, Literal) => true,
+            (
+                Multi {
+                    expected: lx,
+                    found: ly,
+                },
+                Multi {
+                    expected: rx,
+                    found: ry,
+                },
+            ) if lx == rx && ly == ry => true,
+            _ => false,
         }
     }
 }
