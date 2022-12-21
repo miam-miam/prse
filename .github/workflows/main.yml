@@ -40,8 +40,10 @@ jobs:
           toolchain: stable
           override: true
 
+      - name: Cd into test
+        run: cd ${{ matrix.dir }}
+
       - name: Run cargo test
-        working-directory: = ${{ matrix.dir }}
         uses: actions-rs/cargo@v1
         with:
           command: test
