@@ -132,37 +132,36 @@ fn parse_var(input: String, input_span: Span) -> syn::Result<Instruction> {
         Some((var, split)) => {
             let mut var: Var = parse_str(var)?;
             var.add_span(input_span);
-            let Some((sep, num)) = split.rsplit_once(':') else {
-                return Err(syn::Error::new(
-                    input_span,
-                    "invalid multi parse, it must be of the form <var>:<sep>:<count>.",
-                ));
-            };
-
-            if sep.is_empty() {
-                return Err(syn::Error::new(input_span, "separator cannot be empty."));
-            }
-
-            Ok(if num.trim().is_empty() {
-                if !cfg!(feature = "alloc") {
-                    return Err(syn::Error::new(
-                        input_span,
-                        "alloc feature is required to parse into a Vec.",
-                    ));
+            if let Some((sep, num)) = split.rsplit_once(':') {
+                if sep.is_empty() {
+                    return Err(syn::Error::new(input_span, "separator cannot be empty."));
                 }
-                Instruction::VecParse(var, String::from(sep))
-            } else {
-                match num.parse() {
-                    Ok(0_u8) => Instruction::IterParse(var, String::from(sep)),
-                    Ok(x) => Instruction::MultiParse(var, String::from(sep), x),
-                    Err(_) => {
+                Ok(if num.trim().is_empty() {
+                    if !cfg!(feature = "alloc") {
                         return Err(syn::Error::new(
                             input_span,
-                            format!("expected a number between 0 and 255 but found {num}."),
+                            "alloc feature is required to parse into a Vec.",
                         ));
                     }
-                }
-            })
+                    Instruction::VecParse(var, String::from(sep))
+                } else {
+                    match num.parse() {
+                        Ok(0_u8) => Instruction::IterParse(var, String::from(sep)),
+                        Ok(x) => Instruction::MultiParse(var, String::from(sep), x),
+                        Err(_) => {
+                            return Err(syn::Error::new(
+                                input_span,
+                                format!("expected a number between 0 and 255 but found {num}."),
+                            ));
+                        }
+                    }
+                })
+            } else {
+                Err(syn::Error::new(
+                    input_span,
+                    "invalid multi parse, it must be of the form <var>:<sep>:<count>.",
+                ))
+            }
         }
         None => {
             let mut var: Var = parse_str(&input)?;
