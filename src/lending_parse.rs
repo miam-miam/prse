@@ -6,10 +6,26 @@ use crate::parse_error::ParseError;
 /// Parse a string into the implemented type, unlike [`FromStr`] this trait allows
 /// you to borrow the string.
 pub trait LendingFromStr<'a> {
-    /// Parses a string `s` to return value of this type.
+    /// Parses a string `s` to a return value of this type.
     ///
     /// If parsing succeeds, return the value inside [`Ok`], otherwise
     /// when the string is ill-formatted return a [`ParseError`].
+    ///
+    /// ```
+    /// # use prse::{parse, LendingFromStr, ParseError};
+    /// # #[derive(PartialEq, Debug)]
+    /// struct Count<'b>(&'b str, u32);
+    ///
+    /// impl<'a> LendingFromStr<'a> for Count<'a> {
+    ///     fn from_str(s: &'a str) -> Result<Self, ParseError> {
+    ///         let (fruit, count) = s.split_once(':').ok_or_else(|| ParseError::new("expected a colon."))?;    
+    ///         Ok(Count(<&'a str>::from_str(fruit)?, <u32>::from_str(count.trim())?))
+    ///     }
+    /// }
+    ///
+    /// let c: Count = parse!("I have: {apple: 8}.", "I have: {{{}}}.");
+    /// assert_eq!(c, Count("apple", 8));
+    /// ```
     fn from_str(s: &'a str) -> Result<Self, ParseError>
     where
         Self: Sized;

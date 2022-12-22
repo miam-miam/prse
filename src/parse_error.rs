@@ -29,14 +29,10 @@ pub enum ParseError {
     Addr(AddrParseError),
     #[cfg(feature = "std")]
     /// The variant returned when you want to return an error that is not defined here.
-    /// When not using the `std` feature, `Dyn` is a unit variant as the
-    /// [`Error`](error::Error) trait is part of std.
+    ///
+    /// This variant is only enabled with the `std` feature as the
+    /// [`Error`](error::Error) trait is a part of std.
     Dyn(Box<dyn error::Error + Send + Sync>),
-    /// The variant returned when you want to return an error that is not defined here.
-    /// When not using the `std` feature, `Dyn` is a unit variant as the
-    /// [`Error`](error::Error) trait is part of std.
-    #[cfg(not(feature = "std"))]
-    Dyn,
     /// The variant returned when [`parse!`](crate::parse) found an unexpected literal.
     /// When not using the `alloc` feature, `Literal` is a unit variant.
     #[cfg(feature = "alloc")]
@@ -57,9 +53,47 @@ pub enum ParseError {
         /// The size of the array it found.
         found: u8,
     },
+    /// A variant that can be used when you need to return a simple error.
+    /// When not using the `alloc` feature, `Other` is a unit variant.
+    #[cfg(feature = "alloc")]
+    Other(String),
+    #[cfg(not(feature = "alloc"))]
+    Other,
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "alloc")]
+impl ParseError {
+    /// Create a new ParseError from a printable error message.
+    ///
+    /// This function stores the passed message into the `Other` variant.
+    /// And as such can only be used when using the `alloc` feature.
+    ///
+    /// This function can be especially useful when trying to implement [`LendingFromStr`](crate::LendingFromStr).
+    /// ```
+    /// # use prse::{LendingFromStr, ParseError, ExtParseStr, parse};
+    /// # #[derive(PartialEq, Debug)]
+    /// struct Bool(bool);
+    ///
+    /// impl<'a> LendingFromStr<'a> for Bool {
+    ///     fn from_str(s: &'a str) -> Result<Self, ParseError> {
+    ///         match s {
+    ///             "false" | "False" => Ok(Bool(false)),
+    ///             "true" | "True" => Ok(Bool(true)),
+    ///             _ => Err(ParseError::new(format!("expected to find true or false but found {s}.")))
+    ///         }   
+    ///     }
+    /// }
+    ///
+    /// # fn main() -> Result<(), ParseError> {
+    /// let b: Bool = parse!("True", "{}");
+    /// assert_eq!(b, Bool(true));
+    /// # Ok(())}
+    /// ```
+    pub fn new<T: std::fmt::Display>(message: T) -> Self {
+        Self::Other(message.to_string())
+    }
+}
+
 impl error::Error for ParseError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
@@ -71,6 +105,7 @@ impl error::Error for ParseError {
             ParseError::Dyn(source) => Some(&**source),
             ParseError::Literal { .. } => None,
             ParseError::Multi { .. } => None,
+            ParseError::Other(_) => None,
         }
     }
 }
@@ -86,8 +121,6 @@ impl core::fmt::Display for ParseError {
             ParseError::Addr(_) => write!(fmt, "unable to parse as an address"),
             #[cfg(feature = "std")]
             ParseError::Dyn(_) => write!(fmt, "unable to parse into type"),
-            #[cfg(not(feature = "std"))]
-            ParseError::Dyn => write!(fmt, "unable to parse into type"),
             #[cfg(feature = "alloc")]
             ParseError::Literal { expected, found } => write!(
                 fmt,
@@ -99,6 +132,10 @@ impl core::fmt::Display for ParseError {
                 fmt,
                 "invalid number of items (expected to find {expected:?}, found {found:?})"
             ),
+            #[cfg(feature = "alloc")]
+            ParseError::Other(message) => write!(fmt, "{message}"),
+            #[cfg(not(feature = "alloc"))]
+            ParseError::Other(message) => write!(fmt, "unable to parse into type"),
         }
     }
 }
@@ -114,8 +151,6 @@ impl PartialEq for ParseError {
             (Float(x), Float(y)) if x == y => true,
             #[cfg(feature = "std")]
             (Addr(x), Addr(y)) if x == y => true,
-            #[cfg(not(feature = "std"))]
-            (Dyn, Dyn) => true,
             #[cfg(feature = "alloc")]
             (
                 Literal {
@@ -139,6 +174,10 @@ impl PartialEq for ParseError {
                     found: ry,
                 },
             ) if lx == rx && ly == ry => true,
+            #[cfg(feature = "alloc")]
+            (Other(x), Other(y)) if x == y => true,
+            #[cfg(not(feature = "alloc"))]
+            (Other, Other) => true,
             _ => false,
         }
     }
