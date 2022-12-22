@@ -31,7 +31,7 @@ pub enum ParseError {
     /// The variant returned when you want to return an error that is not defined here.
     /// When not using the `std` feature, `Dyn` is a unit variant as the
     /// [`Error`](error::Error) trait is part of std.
-    Dyn(Box<dyn error::Error>),
+    Dyn(Box<dyn error::Error + Send + Sync>),
     /// The variant returned when you want to return an error that is not defined here.
     /// When not using the `std` feature, `Dyn` is a unit variant as the
     /// [`Error`](error::Error) trait is part of std.
@@ -62,15 +62,13 @@ pub enum ParseError {
 #[cfg(feature = "std")]
 impl error::Error for ParseError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-        use std::borrow::Borrow;
-
         match self {
             ParseError::Int(source) => Some(source),
             ParseError::Bool(source) => Some(source),
             ParseError::Char(source) => Some(source),
             ParseError::Float(source) => Some(source),
             ParseError::Addr(source) => Some(source),
-            ParseError::Dyn(source) => Some(source.borrow()),
+            ParseError::Dyn(source) => Some(&**source),
             ParseError::Literal { .. } => None,
             ParseError::Multi { .. } => None,
         }
@@ -163,4 +161,18 @@ impl_from_parse_error!(ParseFloatError, Float);
 #[cfg(feature = "std")]
 impl_from_parse_error!(AddrParseError, Addr);
 #[cfg(feature = "std")]
-impl_from_parse_error!(Box<dyn error::Error>, Dyn);
+impl_from_parse_error!(Box<dyn error::Error + Send + Sync>, Dyn);
+
+#[cfg(test)]
+mod test {
+    use crate::ParseError;
+
+    #[test]
+    fn check_impl_traits() {
+        fn is_send<T: Send>() {}
+        fn is_sync<T: Sync>() {}
+
+        is_send::<ParseError>();
+        is_sync::<ParseError>();
+    }
+}
