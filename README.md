@@ -8,6 +8,8 @@ Prse is a small string parsing library with an emphasis on speed and ease of use
 
 It provides the [`parse!`] macro which allows you to easily parse strings into any type using a format args like syntax.
 
+<sup>Prse currently supports rustc 1.59 and above.</sup>
+
 [`parse!`]: https://docs.rs/prse/latest/prse/macro.parse.html
 
 ## Examples
@@ -53,8 +55,8 @@ assert_eq!(path.unwrap(), PathBuf::from("C:\\windows\\system32"));
 
 ## Roadmap
 
-- Write some ui tests
 - Benchmarking
+- Add a Derive macro for LendingFromStr
 - Have the ability to specify multiple parses if the first one fails
 
 #### License
