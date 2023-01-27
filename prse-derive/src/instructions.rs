@@ -2,12 +2,13 @@ use itertools::Itertools;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::ToTokens;
 use syn::parse::{Parse, ParseStream};
-use syn::parse_str;
+use syn::{parse_str, LitInt};
 
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub enum Var {
     Implied,
     Ident(Ident),
+    Position(u8),
 }
 
 impl Var {
@@ -19,6 +20,7 @@ impl Var {
                 quote!(let #var)
             }
             Var::Ident(i) => i.into_token_stream(),
+            Var::Position(p) => todo!(),
         }
     }
 
@@ -34,11 +36,24 @@ impl Parse for Var {
         if input.is_empty() {
             Ok(Var::Implied)
         } else {
-            let res = input.parse::<Ident>().map(Var::Ident)?;
-            if !input.is_empty() {
-                return Err(input.error("expected identifier"));
+            match input.parse::<LitInt>() {
+                Ok(l) => {
+                    let pos: u8 = l
+                        .base10_parse()
+                        .map_err(|_| input.error("position must be between 0 and 255."))?;
+                    if !input.is_empty() {
+                        return Err(input.error("expected count."));
+                    }
+                    Ok(Var::Position(pos))
+                }
+                Err(_) => {
+                    let res = input.parse::<Ident>().map(Var::Ident)?;
+                    if !input.is_empty() {
+                        return Err(input.error("expected identifier"));
+                    }
+                    Ok(res)
+                }
             }
-            Ok(res)
         }
     }
 }
@@ -182,7 +197,7 @@ mod tests {
         use super::Instruction::*;
         use super::Var::*;
         #[rustfmt::skip]
-        let cases = [
+            let cases = [
             ("{}", vec![Parse(Implied)]),
             ("{} {}", vec![Parse(Implied), Lit(" ".into()), Parse(Implied)]),
             ("{}\n{}", vec![Parse(Implied), Lit("\n".into()), Parse(Implied)]),
@@ -203,6 +218,7 @@ mod tests {
             ("{::,::85}", vec![MultiParse(Implied, ":,:".into(), 85)]),
             ("{::,::0}", vec![IterParse(Implied, ":,:".into())]),
             ("{::,::}", vec![VecParse(Implied, ":,:".into())]),
+            ("{ 0  }", vec![Parse(Position(0))])
         ];
         for (input, expected) in cases {
             let output = get_instructions(input, Span::call_site());
