@@ -20,7 +20,7 @@ impl Var {
                 quote!(let #var)
             }
             Var::Ident(i) => i.into_token_stream(),
-            Var::Position(p) => todo!(),
+            Var::Position(_) => todo!(),
         }
     }
 
@@ -65,6 +65,18 @@ pub enum Instruction {
     VecParse(Var, String),
     IterParse(Var, String),
     MultiParse(Var, String, u8),
+}
+
+impl Instruction {
+    fn get_var(&self) -> Option<&Var> {
+        match self {
+            Instruction::Lit(_) => None,
+            Instruction::Parse(v)
+            | Instruction::VecParse(v, _)
+            | Instruction::IterParse(v, _)
+            | Instruction::MultiParse(v, _, _) => Some(v),
+        }
+    }
 }
 
 pub fn get_instructions(input: &str, input_span: Span) -> syn::Result<Vec<Instruction>> {
@@ -139,7 +151,45 @@ pub fn get_instructions(input: &str, input_span: Span) -> syn::Result<Vec<Instru
     if !val.is_empty() {
         instructions.push(Instruction::Lit(val));
     }
-    Ok(instructions)
+
+    validate_instructions(instructions, input_span)
+}
+
+fn validate_instructions(
+    instructions: Vec<Instruction>,
+    input_span: Span,
+) -> syn::Result<Vec<Instruction>> {
+    if instructions
+        .iter()
+        .any(|i| matches!(i.get_var(), Some(Var::Position(_))))
+    {
+        if !instructions
+            .iter()
+            .any(|i| matches!(i.get_var(), Some(Var::Implied)))
+        {
+            let has_constant_step = instructions
+                .iter()
+                .flat_map(|i| match i.get_var() {
+                    Some(Var::Position(p)) => Some(p),
+                    _ => None,
+                })
+                .sorted()
+                .zip(0_u8..)
+                .all(|(i, p)| i == &p);
+            if has_constant_step {
+                Ok(instructions)
+            } else {
+                Err(syn::Error::new(input_span, "Each positional argument much uniquely map to a corresponding index in the returned tuple."))
+            }
+        } else {
+            Err(syn::Error::new(
+                input_span,
+                "Cannot use implied positional arguments with explicitly defined ones.",
+            ))
+        }
+    } else {
+        Ok(instructions)
+    }
 }
 
 fn parse_var(input: String, input_span: Span) -> syn::Result<Instruction> {
@@ -197,7 +247,7 @@ mod tests {
         use super::Instruction::*;
         use super::Var::*;
         #[rustfmt::skip]
-            let cases = [
+        let cases = [
             ("{}", vec![Parse(Implied)]),
             ("{} {}", vec![Parse(Implied), Lit(" ".into()), Parse(Implied)]),
             ("{}\n{}", vec![Parse(Implied), Lit("\n".into()), Parse(Implied)]),
@@ -218,7 +268,9 @@ mod tests {
             ("{::,::85}", vec![MultiParse(Implied, ":,:".into(), 85)]),
             ("{::,::0}", vec![IterParse(Implied, ":,:".into())]),
             ("{::,::}", vec![VecParse(Implied, ":,:".into())]),
-            ("{ 0  }", vec![Parse(Position(0))])
+            ("{ 0  }", vec![Parse(Position(0))]),
+            ("{1} {0}", vec![Parse(Position(1)), Lit(" ".into()), Parse(Position(0))]),
+            ("{0} {  hiya }", vec![Parse(Position(0)), Lit(" ".into()), Parse(Ident(syn::Ident::new("hiya", Span::call_site())))]),
         ];
         for (input, expected) in cases {
             let output = get_instructions(input, Span::call_site());
