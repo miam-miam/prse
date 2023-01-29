@@ -21,59 +21,29 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --all-targets
 
   test:
     name: Test Suite
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dir: [".", "tests/test-alloc", "tests/test-no-std", "tests/test-std"]
+        version: ['1.59', 'stable']
+        dir: ['.', 'tests/test-alloc', 'tests/test-no-std', 'tests/test-std']
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
 
-      - name: Install stable toolchain
+      - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: ${{ matrix.version }}
           override: true
 
-      - name: Cd into test
-        run: cd ${{ matrix.dir }}
-
       - name: Run cargo test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all-targets
-
-  test-msrv:
-    name: Test Suite (Follows MSRV)
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        dir: [ ".", "tests/test-alloc", "tests/test-no-std", "tests/test-std" ]
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: 1.59
-          override: true
-
-      - name: Cd into test
-        run: cd ${{ matrix.dir }}
-
-      - name: Run cargo test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all-targets
+        run: | 
+          cd ${{ matrix.dir }}
+          cargo test
 
   lints:
     name: Lints
