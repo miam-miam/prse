@@ -21,7 +21,6 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --all-targets
 
   test:
     name: Test Suite
@@ -47,7 +46,6 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all-targets
 
   test-msrv:
     name: Test Suite (Follows MSRV)
@@ -73,7 +71,6 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all-targets
 
   lints:
     name: Lints
