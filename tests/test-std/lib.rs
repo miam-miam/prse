@@ -80,4 +80,14 @@ mod tests {
             })
         );
     }
+
+    #[test]
+    #[should_panic]
+    fn check_parse_unwrap() {
+        let input = String::from("There are 7 boos.");
+        let num: u32;
+        parse!(input, "There are {num} bos.");
+        drop(input);
+        assert_eq!(num, 7)
+    }
 }

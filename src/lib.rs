@@ -104,6 +104,8 @@ pub use prse_derive::{parse, try_parse};
 
 pub use crate::lending_parse::{ExtParseStr, LendingFromStr};
 pub use crate::parse_error::ParseError;
+#[doc(hidden)]
+pub use crate::parse_error::__private;
 
 mod lending_parse;
 mod parse_error;

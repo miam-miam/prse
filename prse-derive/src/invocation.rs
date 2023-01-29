@@ -238,9 +238,12 @@ impl ToTokens for ParseInvocation {
             }
         } else {
             quote! {
-                let ( #(#func_idents),* ) = __prse_func(__prse_input).unwrap();
+                let ( #(#func_idents),* ) = ::prse::__private::unwrap_parse(__prse_func(__prse_input), __prse_input);
                 #renames
-                ( #(#return_idents),* )
+                #[allow(clippy::unused_unit)]
+                {
+                    ( #(#return_idents),* )
+                }
             }
         });
 

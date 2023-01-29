@@ -207,6 +207,20 @@ impl_from_parse_error!(AddrParseError, Addr);
 #[cfg(feature = "std")]
 impl_from_parse_error!(Box<dyn error::Error + Send + Sync>, Dyn);
 
+#[doc(hidden)]
+pub mod __private {
+    use crate::ParseError;
+
+    #[doc(hidden)]
+    /// Not part of public api used to unwrap the result when parsing.
+    pub fn unwrap_parse<T>(result: Result<T, ParseError>, input: &str) -> T {
+        match result {
+            Ok(x) => x,
+            Err(e) => panic!("Unable to parse {input:?}: {e:?}"),
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::ParseError;

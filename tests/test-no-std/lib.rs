@@ -82,4 +82,13 @@ mod tests {
         assert_eq!(rhs, 9);
         assert_eq!(var, "test:")
     }
+
+    #[test]
+    #[should_panic]
+    fn check_parse_unwrap() {
+        let input = "There are 7 boos.";
+        let num: u32;
+        parse!(input, "There are {num} bos.");
+        assert_eq!(num, 7)
+    }
 }
