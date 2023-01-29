@@ -4,7 +4,7 @@ use syn::parse::{Parse, ParseStream};
 use syn::spanned::Spanned;
 use syn::{Expr, LitStr, Token};
 
-use crate::instructions::{get_instructions, Instruction};
+use crate::instructions::{get_instructions, Instruction, Var};
 
 #[derive(Clone)]
 pub struct ParseInvocation {
@@ -29,29 +29,60 @@ impl Parse for ParseInvocation {
     }
 }
 
-impl ToTokens for ParseInvocation {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let input = &self.input;
-        let alloc_crate = if cfg!(feature = "std") {
+impl ParseInvocation {
+    fn gen_function(&self, body: TokenStream, tokens: &mut TokenStream) {
+        let mut generics = vec![];
+        let mut return_types = vec![];
+        for (idx, i) in self
+            .instructions
+            .iter()
+            .enumerate()
+            .filter(|(_, i)| !matches!(i, Instruction::Lit(_)))
+        {
+            let type_ident = format_ident!("T{idx}");
+            generics.push(match i {
+                Instruction::Parse(_) => type_ident.to_token_stream(),
+                Instruction::VecParse(_, _) => {
+                    if cfg!(feature = "std") {
+                        quote!(::std::vec::Vec<#type_ident>)
+                    } else {
+                        quote!(::alloc::vec::Vec<#type_ident>)
+                    }
+                }
+                Instruction::IterParse(_, _) => quote! {
+                    impl ::core::iter::Iterator<Item = ::core::result::Result<#type_ident, ::prse::ParseError>> + 'a
+                },
+                Instruction::MultiParse(_, _, count) => {
+                    let count = *count as usize;
+                    quote! ([ #type_ident ; #count])
+                }
+                _ => unreachable!(),
+            });
+            return_types.push(type_ident);
+        }
+
+        tokens.append_all(quote! {
+            fn __prse_func<'a, #(#return_types: LendingFromStr<'a>),* >(
+                mut __prse_input: &'a str,
+            ) -> ::core::result::Result<( #(#generics),* ), ::prse::ParseError> {
+                #body
+            }
+        })
+    }
+
+    fn gen_body(&self, result: &mut TokenStream) {
+        let mut store_token = None;
+        let alloc_crate: TokenStream = if cfg!(feature = "std") {
             quote!(std)
         } else {
             quote!(alloc)
         };
-        let mut result = quote_spanned! { input.span() =>
-            #[allow(clippy::needless_borrow)]
-            let mut __prse_input: &str = &#input;
-            let mut __prse_parse;
-        };
-        let mut idents_to_return = vec![];
-        let mut store_token = None;
 
         for (idx, i) in self.instructions.iter().enumerate() {
+            let var = format_ident!("__prse_{idx}");
             match i {
                 Instruction::Lit(l_string) => {
-                    let l_string = l_string.parse().map_or_else(
-                        |_| l_string.to_token_stream(),
-                        |s: char| s.to_token_stream(),
-                    );
+                    let l_string = string_to_tokens(l_string);
 
                     result.append_all(if cfg!(feature = "alloc") {
                         quote! {
@@ -70,47 +101,33 @@ impl ToTokens for ParseInvocation {
                         result.append_all(t);
                     }
                 }
-                Instruction::Parse(var) => {
-                    let var = var.get_ident(&mut idents_to_return, idx);
-
+                Instruction::Parse(_) => {
                     store_token = Some(quote! {
-                        #var = __prse_parse.lending_parse()?;
+                        let #var = __prse_parse.lending_parse()?;
                     });
                 }
-                Instruction::VecParse(var, sep) => {
-                    let var = var.get_ident(&mut idents_to_return, idx);
-                    let sep = sep
-                        .parse()
-                        .map_or_else(|_| sep.to_token_stream(), |s: char| s.to_token_stream());
-
+                Instruction::VecParse(_, sep) => {
+                    let sep = string_to_tokens(sep);
                     store_token = Some(quote! {
-                        #var = __prse_parse.split(#sep)
+                        let #var = __prse_parse.split(#sep)
                             .map(|p| p.lending_parse())
                             .collect::<::core::result::Result<::#alloc_crate::vec::Vec<_>, ::prse::ParseError>>()?;
                     });
                 }
-                Instruction::IterParse(var, sep) => {
-                    let var = var.get_ident(&mut idents_to_return, idx);
-                    let sep = sep
-                        .parse()
-                        .map_or_else(|_| sep.to_token_stream(), |s: char| s.to_token_stream());
-
+                Instruction::IterParse(_, sep) => {
+                    let sep = string_to_tokens(sep);
                     store_token = Some(quote! {
-                        #var = __prse_parse.split(#sep)
+                        let #var = __prse_parse.split(#sep)
                             .map(|p| p.lending_parse());
                     });
                 }
-                Instruction::MultiParse(var, sep, count) => {
-                    let var = var.get_ident(&mut idents_to_return, idx);
-                    let sep = sep
-                        .parse()
-                        .map_or_else(|_| sep.to_token_stream(), |s: char| s.to_token_stream());
-
+                Instruction::MultiParse(_, sep, count) => {
+                    let sep = string_to_tokens(sep);
                     let i = 0..*count;
                     store_token = Some(quote! {
                         let mut __prse_iter = __prse_parse.split(#sep)
                             .map(|p| p.lending_parse());
-                        #var = [ #(
+                        let #var = [ #(
                             __prse_iter.next()
                             .ok_or_else(|| ::prse::ParseError::Multi {
                                 expected: #count,
@@ -141,22 +158,107 @@ impl ToTokens for ParseInvocation {
             }
         }, |t| quote! { __prse_parse = __prse_input; #t }));
 
-        result.append_all(quote! { Ok::<_, ::prse::ParseError>(( #(#idents_to_return),* )) });
+        let return_idents = self.instructions.iter().enumerate().filter_map(|(idx, i)| {
+            i.get_var()?;
+            Some(format_ident!("__prse_{idx}"))
+        });
+        result.append_all(quote! { Ok(( #(#return_idents),* )) });
+    }
+}
 
-        let function = if self.try_parse {
-            quote!(__prse_func())
-        } else {
-            quote!(__prse_func().unwrap())
+impl ToTokens for ParseInvocation {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let mut renames = TokenStream::new();
+        let mut return_idents = vec![];
+        let mut func_idents = vec![];
+        let mut num_positions = 0;
+
+        for (idx, instruction) in self
+            .instructions
+            .iter()
+            .enumerate()
+            .filter(|(_, i)| !matches!(i, Instruction::Lit(_)))
+        {
+            let var = instruction.get_var().unwrap();
+            let ident = format_ident!("__prse_{idx}");
+            match var {
+                Var::Implied => {
+                    func_idents.push(ident.clone());
+                    return_idents.push(ident);
+                }
+                Var::Ident(i) => {
+                    func_idents.push(ident.clone());
+                    renames.append_all(quote!(#i = #ident;));
+                }
+                Var::Position(p) => {
+                    func_idents.push(format_ident!("__prse_pos_{p}"));
+                    return_idents.push(format_ident!("__prse_pos_{num_positions}"));
+                    num_positions += 1;
+                }
+            };
+        }
+
+        let mut body = quote!(let mut __prse_parse;);
+        let mut function = quote!(
+            use ::prse::{ExtParseStr, LendingFromStr};
+        );
+
+        self.gen_body(&mut body);
+
+        let func_idents: Vec<_> = self
+            .instructions
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, i)| {
+                Some(match i.get_var()? {
+                    Var::Position(p) => format_ident!("__prse_pos_{p}"),
+                    _ => format_ident!("__prse_{idx}"),
+                })
+            })
+            .collect();
+
+        self.gen_function(body, &mut function);
+
+        let input = &self.input;
+
+        let mut result = quote_spanned! { input.span() =>
+            #[allow(clippy::needless_borrow)]
+            let mut __prse_input: &str = &#input;
         };
+
+        result.append_all(if self.try_parse {
+            quote! {
+                match __prse_func(__prse_input) {
+                    Ok(( #(#func_idents),* )) => {
+                        #renames
+                        Ok(( #(#return_idents),* ))
+                    }
+                    Err(e) => Err(e),
+                }
+            }
+        } else {
+            quote! {
+                let ( #(#func_idents),* ) = ::prse::__private::unwrap_parse(__prse_func(__prse_input), __prse_input);
+                #renames
+                #[allow(clippy::unused_unit)]
+                {
+                    ( #(#return_idents),* )
+                }
+            }
+        });
 
         tokens.append_all(quote! {
             {
-                use ::prse::{ExtParseStr,LendingFromStr};
-                let mut __prse_func = || {
-                    #result
-                };
                 #function
+
+                #result
             }
         });
     }
+}
+
+fn string_to_tokens(string: &str) -> TokenStream {
+    string
+        .parse()
+        .map_or_else(|_| string.to_token_stream(), |s: char| s.to_token_stream())
 }

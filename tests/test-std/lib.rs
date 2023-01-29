@@ -39,10 +39,11 @@ mod tests {
         );
 
         let numbers = "test: 5 - 9";
-        let mut var: &str = "";
+        let var: &str;
         let (rhs, lhs): (u32, u32) = parse!(numbers, "{var} {1} - {0}");
         assert_eq!(lhs, 5);
         assert_eq!(rhs, 9);
+        assert_eq!(var, "test:")
     }
 
     #[test]
@@ -78,5 +79,15 @@ mod tests {
                 found: 3
             })
         );
+    }
+
+    #[test]
+    #[should_panic]
+    fn check_parse_unwrap() {
+        let input = String::from("There are 7 boos.");
+        let num: u32;
+        parse!(input, "There are {num} bos.");
+        drop(input);
+        assert_eq!(num, 7)
     }
 }

@@ -53,8 +53,8 @@ mod tests {
     #[test]
     fn general_tests() {
         let l = "(5,6) has [0,2,42]";
-        let mut x = 5_u32;
-        let mut y = 5_i32;
+        let x: u32;
+        let y: i32;
         let v: [u32; 3] = parse!(l, "({x},{y}) has [{:,:3}]");
         assert_eq!((x, y, v), (5, 6, [0, 2, 42]));
 
@@ -76,9 +76,19 @@ mod tests {
         );
 
         let numbers = "test: 5 - 9";
-        let mut var: &str = "";
+        let var: &str;
         let (rhs, lhs): (u32, u32) = parse!(numbers, "{var} {1} - {0}");
         assert_eq!(lhs, 5);
         assert_eq!(rhs, 9);
+        assert_eq!(var, "test:")
+    }
+
+    #[test]
+    #[should_panic]
+    fn check_parse_unwrap() {
+        let input = "There are 7 boos.";
+        let num: u32;
+        parse!(input, "There are {num} bos.");
+        assert_eq!(num, 7)
     }
 }
