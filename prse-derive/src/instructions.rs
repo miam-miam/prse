@@ -2,12 +2,13 @@ use itertools::Itertools;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::ToTokens;
 use syn::parse::{Parse, ParseStream};
-use syn::parse_str;
+use syn::{parse_str, LitInt};
 
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub enum Var {
     Implied,
     Ident(Ident),
+    Position(u8),
 }
 
 impl Var {
@@ -19,6 +20,15 @@ impl Var {
                 quote!(let #var)
             }
             Var::Ident(i) => i.into_token_stream(),
+            Var::Position(p) => {
+                let p = *p as usize;
+                if idents.len() < p + 1 {
+                    idents.resize(p + 1, format_ident!("DUMMY_IDENT"));
+                }
+                *idents.get_mut(p).unwrap() = format_ident!("__prse_{}", idx);
+                let var = idents.get(p).unwrap();
+                quote!(let #var)
+            }
         }
     }
 
@@ -34,11 +44,24 @@ impl Parse for Var {
         if input.is_empty() {
             Ok(Var::Implied)
         } else {
-            let res = input.parse::<Ident>().map(Var::Ident)?;
-            if !input.is_empty() {
-                return Err(input.error("expected identifier"));
+            match input.parse::<LitInt>() {
+                Ok(l) => {
+                    let pos: u8 = l
+                        .base10_parse()
+                        .map_err(|_| input.error("position must be between 0 and 255."))?;
+                    if !input.is_empty() {
+                        return Err(input.error("expected count."));
+                    }
+                    Ok(Var::Position(pos))
+                }
+                Err(_) => {
+                    let res = input.parse::<Ident>().map(Var::Ident)?;
+                    if !input.is_empty() {
+                        return Err(input.error("expected identifier"));
+                    }
+                    Ok(res)
+                }
             }
-            Ok(res)
         }
     }
 }
@@ -50,6 +73,18 @@ pub enum Instruction {
     VecParse(Var, String),
     IterParse(Var, String),
     MultiParse(Var, String, u8),
+}
+
+impl Instruction {
+    fn get_var(&self) -> Option<&Var> {
+        match self {
+            Instruction::Lit(_) => None,
+            Instruction::Parse(v)
+            | Instruction::VecParse(v, _)
+            | Instruction::IterParse(v, _)
+            | Instruction::MultiParse(v, _, _) => Some(v),
+        }
+    }
 }
 
 pub fn get_instructions(input: &str, input_span: Span) -> syn::Result<Vec<Instruction>> {
@@ -124,7 +159,45 @@ pub fn get_instructions(input: &str, input_span: Span) -> syn::Result<Vec<Instru
     if !val.is_empty() {
         instructions.push(Instruction::Lit(val));
     }
-    Ok(instructions)
+
+    validate_instructions(instructions, input_span)
+}
+
+fn validate_instructions(
+    instructions: Vec<Instruction>,
+    input_span: Span,
+) -> syn::Result<Vec<Instruction>> {
+    if instructions
+        .iter()
+        .any(|i| matches!(i.get_var(), Some(Var::Position(_))))
+    {
+        if !instructions
+            .iter()
+            .any(|i| matches!(i.get_var(), Some(Var::Implied)))
+        {
+            let has_constant_step = instructions
+                .iter()
+                .flat_map(|i| match i.get_var() {
+                    Some(Var::Position(p)) => Some(p),
+                    _ => None,
+                })
+                .sorted()
+                .zip(0_u8..)
+                .all(|(i, p)| i == &p);
+            if has_constant_step {
+                Ok(instructions)
+            } else {
+                Err(syn::Error::new(input_span, "Each positional argument much uniquely map to a corresponding index in the returned tuple."))
+            }
+        } else {
+            Err(syn::Error::new(
+                input_span,
+                "Cannot use implied positional arguments with explicitly defined ones.",
+            ))
+        }
+    } else {
+        Ok(instructions)
+    }
 }
 
 fn parse_var(input: String, input_span: Span) -> syn::Result<Instruction> {
@@ -203,6 +276,9 @@ mod tests {
             ("{::,::85}", vec![MultiParse(Implied, ":,:".into(), 85)]),
             ("{::,::0}", vec![IterParse(Implied, ":,:".into())]),
             ("{::,::}", vec![VecParse(Implied, ":,:".into())]),
+            ("{ 0  }", vec![Parse(Position(0))]),
+            ("{1} {0}", vec![Parse(Position(1)), Lit(" ".into()), Parse(Position(0))]),
+            ("{0} {  hiya }", vec![Parse(Position(0)), Lit(" ".into()), Parse(Ident(syn::Ident::new("hiya", Span::call_site())))]),
         ];
         for (input, expected) in cases {
             let output = get_instructions(input, Span::call_site());

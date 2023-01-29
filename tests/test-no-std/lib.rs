@@ -64,4 +64,21 @@ mod tests {
 
         assert_eq!(p, 44);
     }
+
+    #[test]
+    fn positional_tests() {
+        let numbers = "6 1 5 3 4 2 0";
+        let (zero, one, two, three, four, five, six): (i32, i32, i32, i32, i32, i32, i32) =
+            parse!(numbers, "{6} {1} {5} {3} {4} {2} {0}");
+        assert_eq!(
+            [0, 1, 2, 3, 4, 5, 6],
+            [zero, one, two, three, four, five, six]
+        );
+
+        let numbers = "test: 5 - 9";
+        let mut var: &str = "";
+        let (rhs, lhs): (u32, u32) = parse!(numbers, "{var} {1} - {0}");
+        assert_eq!(lhs, 5);
+        assert_eq!(rhs, 9);
+    }
 }

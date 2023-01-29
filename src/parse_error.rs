@@ -6,6 +6,8 @@ use core::str::ParseBoolError;
 extern crate alloc;
 #[cfg(feature = "alloc")]
 use alloc::string::String;
+#[cfg(feature = "alloc")]
+use alloc::string::ToString;
 
 #[cfg(feature = "std")]
 use std::error;
@@ -57,6 +59,8 @@ pub enum ParseError {
     /// When not using the `alloc` feature, `Other` is a unit variant.
     #[cfg(feature = "alloc")]
     Other(String),
+    /// A variant that can be used when you need to return a simple error.
+    /// When not using the `alloc` feature, `Other` is a unit variant.
     #[cfg(not(feature = "alloc"))]
     Other,
 }
@@ -89,11 +93,12 @@ impl ParseError {
     /// assert_eq!(b, Bool(true));
     /// # Ok(())}
     /// ```
-    pub fn new<T: std::fmt::Display>(message: T) -> Self {
+    pub fn new<T: core::fmt::Display>(message: T) -> Self {
         Self::Other(message.to_string())
     }
 }
 
+#[cfg(feature = "std")]
 impl error::Error for ParseError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
@@ -135,7 +140,7 @@ impl core::fmt::Display for ParseError {
             #[cfg(feature = "alloc")]
             ParseError::Other(message) => write!(fmt, "{message}"),
             #[cfg(not(feature = "alloc"))]
-            ParseError::Other(message) => write!(fmt, "unable to parse into type"),
+            ParseError::Other => write!(fmt, "unable to parse into type"),
         }
     }
 }
