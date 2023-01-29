@@ -27,8 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dir: [".", "tests/test-alloc", "tests/test-no-std", "tests/test-std"]
         version: ["1.59" "stable"]
+        dir: [".", "tests/test-alloc", "tests/test-no-std", "tests/test-std"]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
