@@ -19,7 +19,7 @@ use prse::parse;
 
 let input = "5 + -2 = 3";
 
-let mut total = 0_i32;
+let total: i32;
 let (lhs, rhs): (i32, i32) = parse!(input, "{} + {} = {total}");
 
 assert_eq!(lhs + rhs, total);
@@ -31,7 +31,7 @@ It also allows you to parse into multiple variables separated by a separator in 
 use prse::parse;
 
 let input = "My farm contains some amount of booleans: true || false || true || false";
-let mut many: Vec<bool> = vec![];
+let many: Vec<bool>;
 
 // the variable to store the answer in is many and the separator is equal to " || "
 parse!(input, "My farm contains some amount of booleans: {many: || :}");

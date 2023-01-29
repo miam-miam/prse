@@ -23,7 +23,7 @@
 //!# use prse::parse;
 //!#
 //! let input = "Person 5: Hello Bob!";
-//! let mut name = "";
+//! let name: &str;
 //!
 //! // Calls try_parse and unwraps the result.
 //! let five: u32 = parse!(input, "Person {}: Hello {name}!");
@@ -74,7 +74,7 @@
 //!# use prse::parse;
 //!#
 //! let input = "My farm contains some amount of booleans: true || false || true || false";
-//! let mut many: Vec<bool> = vec![];
+//! let many: Vec<bool>;
 //!
 //! // var = many and sep = " || "
 //! parse!(input, "My farm contains some amount of booleans: {many: || :}");

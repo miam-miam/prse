@@ -1,6 +1,5 @@
 use itertools::Itertools;
-use proc_macro2::{Ident, Span, TokenStream};
-use quote::ToTokens;
+use proc_macro2::{Ident, Span};
 use syn::parse::{Parse, ParseStream};
 use syn::{parse_str, LitInt};
 
@@ -12,26 +11,6 @@ pub enum Var {
 }
 
 impl Var {
-    pub fn get_ident<'a>(&'a self, idents: &'a mut Vec<Ident>, idx: usize) -> TokenStream {
-        match self {
-            Var::Implied => {
-                idents.push(format_ident!("__prse_{}", idx));
-                let var = idents.last().unwrap();
-                quote!(let #var)
-            }
-            Var::Ident(i) => i.into_token_stream(),
-            Var::Position(p) => {
-                let p = *p as usize;
-                if idents.len() < p + 1 {
-                    idents.resize(p + 1, format_ident!("DUMMY_IDENT"));
-                }
-                *idents.get_mut(p).unwrap() = format_ident!("__prse_{}", idx);
-                let var = idents.get(p).unwrap();
-                quote!(let #var)
-            }
-        }
-    }
-
     pub fn add_span(&mut self, span: Span) {
         if let Var::Ident(i) = self {
             i.set_span(span)
@@ -76,7 +55,7 @@ pub enum Instruction {
 }
 
 impl Instruction {
-    fn get_var(&self) -> Option<&Var> {
+    pub(crate) fn get_var(&self) -> Option<&Var> {
         match self {
             Instruction::Lit(_) => None,
             Instruction::Parse(v)

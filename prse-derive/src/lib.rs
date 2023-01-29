@@ -18,7 +18,7 @@ mod invocation;
 /// ```ignore
 /// let input = "5 + -2 = 3";
 ///
-/// let mut total = 0_i32;
+/// let total: i32;
 /// let (lhs, rhs): (i32, i32) = parse!(input, "{} + {} = {total}");
 ///
 ///
@@ -54,7 +54,7 @@ mod invocation;
 ///
 /// ```ignore
 /// let input = "My farm contains some amount of booleans: true || false || true || false";
-/// let mut many: Vec<bool> = vec![];
+/// let many: Vec<bool>;
 ///
 /// // var = many and sep = " || "
 /// parse!(input, "My farm contains some amount of booleans: {many: || :}");
@@ -87,7 +87,7 @@ mod invocation;
 ///
 /// ```ignore
 /// let input = "Hello world! Today is a great day!";
-/// let mut world = "";
+/// let world: &str;
 ///
 /// // We only care about world so capture everything else as a string to prevent an error.
 /// let _capture: &str = parse!(input, "Hello {world}!{}")
@@ -102,7 +102,7 @@ mod invocation;
 ///
 /// ```ignore
 /// let input = "Stuff in {} is really important: {42}";
-/// let mut num = 0_u128;
+/// let num: u128;
 ///
 /// parse!(input, "Stuff in {{}} is really important: {{{num}}}");
 ///
