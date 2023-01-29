@@ -19,9 +19,16 @@ mod invocation;
 /// let input = "5 + -2 = 3";
 ///
 /// let mut total = 0_i32;
-/// let (lhs, rhs): (i32, i32) = parse!("{} + {} = {total}");
+/// let (lhs, rhs): (i32, i32) = parse!(input, "{} + {} = {total}");
+///
 ///
 /// assert_eq!(lhs + rhs, total);
+///
+/// // You can also specify the variable's position in the tuple.
+///
+/// let (rhs, lhs): (u32, u32) = parse!("10 / 2", "{1} / {0}");
+///
+/// assert_eq!(lhs / rhs, 5);
 /// ```
 ///
 /// # Repetition

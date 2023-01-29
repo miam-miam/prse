@@ -20,7 +20,15 @@ impl Var {
                 quote!(let #var)
             }
             Var::Ident(i) => i.into_token_stream(),
-            Var::Position(_) => todo!(),
+            Var::Position(p) => {
+                let p = *p as usize;
+                if idents.len() < p + 1 {
+                    idents.resize(p + 1, format_ident!("DUMMY_IDENT"));
+                }
+                *idents.get_mut(p).unwrap() = format_ident!("__prse_{}", idx);
+                let var = idents.get(p).unwrap();
+                quote!(let #var)
+            }
         }
     }
 

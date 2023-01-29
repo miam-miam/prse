@@ -1,0 +1,23 @@
+error: Each positional argument much uniquely map to a corresponding index in the returned tuple.
+ --> ui/positional_variables.rs:7:15
+  |
+7 |     parse!(l, "{0} {0} {1}");
+  |               ^^^^^^^^^^^^^
+
+error: Each positional argument much uniquely map to a corresponding index in the returned tuple.
+ --> ui/positional_variables.rs:8:15
+  |
+8 |     parse!(l, "{0} {num} {2}");
+  |               ^^^^^^^^^^^^^^^
+
+error: Cannot use implied positional arguments with explicitly defined ones.
+ --> ui/positional_variables.rs:9:15
+  |
+9 |     parse!(l, "{0} {1} {}");
+  |               ^^^^^^^^^^^^
+
+error: Each positional argument much uniquely map to a corresponding index in the returned tuple.
+  --> ui/positional_variables.rs:10:15
+   |
+10 |     parse!(l, "{2} one {0}");
+   |               ^^^^^^^^^^^^^

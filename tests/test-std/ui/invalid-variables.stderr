@@ -6,18 +6,18 @@ error: expected identifier
   |
   = note: this error originates in the macro `parse` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error: expected identifier
+error: unexpected end of input, position must be between 0 and 255.
  --> ui/invalid-variables.rs:7:5
   |
-7 |     parse!(l, "test: {0}");
-  |     ^^^^^^^^^^^^^^^^^^^^^^
+7 |     parse!(l, "test: {-8}");
+  |     ^^^^^^^^^^^^^^^^^^^^^^^
   |
   = note: this error originates in the macro `parse` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error: expected identifier
+error: unexpected end of input, position must be between 0 and 255.
  --> ui/invalid-variables.rs:8:5
   |
-8 |     parse!(l, "test: {-8}");
-  |     ^^^^^^^^^^^^^^^^^^^^^^^
+8 |     parse!(l, "test: {256}")
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^
   |
   = note: this error originates in the macro `parse` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -27,6 +27,8 @@
 //!
 //! // Calls try_parse and unwraps the result.
 //! let five: u32 = parse!(input, "Person {}: Hello {name}!");
+//! // We can also specify the return position
+//! assert_eq!((name, five), parse!(input, "Person {1}: Hello {0}!"));
 //!
 //! assert_eq!(five, 5);
 //! assert_eq!(name, "Bob");
