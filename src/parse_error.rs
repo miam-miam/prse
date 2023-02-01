@@ -207,6 +207,20 @@ impl_from_parse_error!(AddrParseError, Addr);
 #[cfg(feature = "std")]
 impl_from_parse_error!(Box<dyn error::Error + Send + Sync>, Dyn);
 
+#[cfg(feature = "alloc")]
+impl From<()> for ParseError {
+    fn from(_: ()) -> Self {
+        ParseError::Other(String::from("Error: ()"))
+    }
+}
+
+#[cfg(not(feature = "alloc"))]
+impl From<()> for ParseError {
+    fn from(_: ()) -> Self {
+        ParseError::Other
+    }
+}
+
 #[doc(hidden)]
 pub mod __private {
     use crate::ParseError;

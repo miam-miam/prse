@@ -100,7 +100,7 @@
 //! assert_eq!(animal_count, 79);
 //! ```
 
-pub use prse_derive::{parse, try_parse};
+pub use prse_derive::{parse, try_parse, LendingFromStr};
 
 pub use crate::lending_parse::{ExtParseStr, LendingFromStr};
 pub use crate::parse_error::ParseError;

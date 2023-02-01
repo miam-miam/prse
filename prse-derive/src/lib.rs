@@ -7,10 +7,13 @@ extern crate quote;
 #[macro_use]
 extern crate syn;
 
+use derive::expand_derive;
 use invocation::ParseInvocation;
 use proc_macro::TokenStream;
 use quote::ToTokens;
+use syn::DeriveInput;
 
+mod derive;
 mod instructions;
 mod invocation;
 /// The `parse` macro allows you to parse a string into any type that implements [`LendingFromStr`](trait.LendingFromStr.html).
@@ -129,4 +132,10 @@ pub fn try_parse(input: TokenStream) -> TokenStream {
     let mut input = parse_macro_input!(input as ParseInvocation);
     input.try_parse = true;
     input.to_token_stream().into()
+}
+
+#[proc_macro_derive(LendingFromStr, attributes(prse))]
+pub fn lending_from_str(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    expand_derive(input).into()
 }
