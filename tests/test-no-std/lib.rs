@@ -91,4 +91,12 @@ mod tests {
         parse!(input, "There are {num} bos.");
         assert_eq!(num, 7)
     }
+
+    #[test]
+    fn empty_literal() {
+        let input = "";
+        parse!(input, "");
+        let input = "Test";
+        parse!(input, "Test")
+    }
 }

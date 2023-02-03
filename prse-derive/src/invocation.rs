@@ -198,7 +198,7 @@ impl ToTokens for ParseInvocation {
             };
         }
 
-        let mut body = quote!(let mut __prse_parse;);
+        let mut body = quote!(let mut __prse_parse: &str;);
         let mut function = quote!(
             use ::prse::{ExtParseStr, LendingFromStr};
         );

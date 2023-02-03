@@ -91,4 +91,12 @@ mod tests {
         assert_eq!(rhs, 9);
         assert_eq!(var, "test:")
     }
+
+    #[test]
+    fn empty_literal() {
+        let input = "";
+        parse!(input, "");
+        let input = "Test";
+        parse!(input, "Test")
+    }
 }
