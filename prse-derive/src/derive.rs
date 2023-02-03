@@ -1,116 +1,70 @@
-use itertools::Itertools;
-use proc_macro2::{Ident, TokenStream};
+use crate::instructions::{get_instructions, Instruction};
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::ToTokens;
 use syn::parse::{Parse, ParseStream};
 use syn::spanned::Spanned;
-use syn::{Attribute, Data, DeriveInput, Fields, Generics};
+use syn::{Attribute, Data, DeriveInput, Generics, LitStr, Type, Variant};
 
 pub(crate) enum Derive {
     NoAttributes(Generics, Ident),
-    Struct(Generics, Ident, Attribute, Fields),
-    Enum(Generics, Ident, Vec<Variant>),
+    Struct(Generics, Ident, Fields),
+    Enum(Generics, Ident, Vec<(Ident, Fields)>),
 }
 
-pub(crate) struct Variant {
-    ident: Ident,
-    fields: Fields,
-    attribute: Attribute,
+pub(crate) enum Fields {
+    Named(Vec<(Ident, Type)>, Vec<Instruction>),
+    Unnamed(Vec<Type>, Vec<Instruction>),
+    Unit(Instruction),
+}
+
+fn validate_fields(fields: syn::Fields, instructions: Vec<Instruction>) -> syn::Result<Fields> {
+    todo!()
 }
 
 impl Parse for Derive {
     fn parse(stream: ParseStream) -> syn::Result<Self> {
         let input: DeriveInput = stream.parse()?;
+        let input_span = input.span();
 
-        let f_attributes: Vec<Option<Attribute>> = match &input.data {
-            Data::Struct(s) => s
-                .fields
-                .iter()
-                .map(|f| get_attribute(f.attrs.iter()))
-                .collect::<Result<_, _>>(),
-            Data::Enum(e) => e
-                .variants
-                .iter()
-                .map(|f| get_attribute(f.attrs.iter()))
-                .collect::<Result<_, _>>(),
-            Data::Union(u) => Err(syn::Error::new(
-                (u.union_token).span(),
+        match input.data {
+            Data::Struct(s) => {
+                no_attributes(s.fields.iter().flat_map(|f| f.attrs.iter()))?;
+                match attribute_instructions(input.attrs.into_iter())? {
+                    None => Ok(Derive::NoAttributes(input.generics, input.ident)),
+                    Some(instructions) => Ok(Derive::Struct(
+                        input.generics,
+                        input.ident,
+                        validate_fields(s.fields, instructions)?,
+                    )),
+                }
+            }
+            Data::Enum(e) => {
+                no_attributes(input.attrs.iter())?;
+                no_attributes(
+                    e.variants
+                        .iter()
+                        .flat_map(|v| v.fields.iter().flat_map(|f| f.attrs.iter())),
+                )?;
+
+                match get_variant_attributes(e.variants.into_iter(), input_span)? {
+                    None => Ok(Derive::NoAttributes(input.generics, input.ident)),
+                    Some(v_instructions) => {
+                        Ok(Derive::Enum(input.generics, input.ident, v_instructions))
+                    }
+                }
+            }
+            Data::Union(_) => Err(syn::Error::new(
+                input_span,
                 "The derive macro does not currently support unions.",
             )),
-        }?;
-
-        if !f_attributes.iter().map(|o| o.is_some()).all_equal() {
-            return Err(syn::Error::new(
-                input.span(),
-                "The derive macro must either have an attribute on each field or none at all.",
-            ));
         }
-
-        let attribute = get_attribute(input.attrs.iter())?;
-
-        let flatten_attributes = f_attributes.first().unwrap_or(&None);
-
-        match (input.data, attribute, flatten_attributes) {
-            (_, None, None) => Ok(Derive::NoAttributes(input.generics, input.ident)),
-            (Data::Struct(s), Some(a), None) => {
-                Ok(Derive::Struct(input.generics, input.ident, a, s.fields))
-            }
-            (Data::Struct(s), _, Some(_)) => Err(syn::Error::new(
-                s.fields.span(),
-                "The derive macro does not support field attributes in a struct.",
-            )),
-            (Data::Enum(s), None, Some(_)) => Ok(Derive::Enum(
-                input.generics,
-                input.ident,
-                f_attributes
-                    .into_iter()
-                    .zip(s.variants.into_iter())
-                    .map(|(a, v)| Variant {
-                        ident: v.ident,
-                        fields: v.fields,
-                        attribute: a.unwrap(),
-                    })
-                    .collect(),
-            )),
-            (Data::Enum(_), Some(a), _) => Err(syn::Error::new(
-                a.span(),
-                "The derive macro does not support single attributes in enums.",
-            )),
-            (Data::Union(_), _, _) => unreachable!(),
-        }
-
-        // for a in f_attributes {
-        //     return Err(syn::Error::new(
-        //         input.span(),
-        //         "The derive macro must either have an attribute on each field or none at all.",
-        //     ));
-        // }
-        //
-        // match get_attribute(&input.attrs) {
-        //     None => {}
-        //     Some(attrs) => {
-        //         if let Some(Some(a)) = f_attributes.first() {
-        //             return Err(syn::Error::new(a.span(), "Unexpected attribute"));
-        //         }
-        //     }
-        // }
-        // //
-        // // Ok(Self {
-        // //     input,
-        // //     try_parse: false,
-        // //     instructions,
-        // // })
-        // todo!()
     }
 }
 
-fn get_attribute<'a>(attrs: impl Iterator<Item = &'a Attribute>) -> syn::Result<Option<Attribute>> {
-    let mut attrs = attrs.filter(|a| {
-        if let Ok(syn::Meta::NameValue(name_value)) = a.parse_meta() {
-            name_value.path.is_ident("prse")
-        } else {
-            false
-        }
-    });
+fn attribute_instructions(
+    attrs: impl Iterator<Item = Attribute>,
+) -> syn::Result<Option<Vec<Instruction>>> {
+    let mut attrs = attrs.filter(is_prse_attribute);
 
     match attrs.next() {
         None => Ok(None),
@@ -119,9 +73,75 @@ fn get_attribute<'a>(attrs: impl Iterator<Item = &'a Attribute>) -> syn::Result<
                 a.span(),
                 "Expected only a single prse attribute.",
             )),
-            None => Ok(Some(a.clone())),
+            None => {
+                let lit = syn::parse2::<LitStr>(a.tokens)?;
+                let lit_string = lit.value();
+                Ok(Some(get_instructions(&lit_string, lit.span())?))
+            }
         },
     }
+}
+
+fn is_prse_attribute(a: &Attribute) -> bool {
+    if let Ok(syn::Meta::NameValue(name_value)) = a.parse_meta() {
+        name_value.path.is_ident("prse")
+    } else {
+        false
+    }
+}
+
+fn no_attributes<'a>(attrs: impl Iterator<Item = &'a Attribute>) -> syn::Result<()> {
+    attrs.filter(|a| is_prse_attribute(a)).fold(Ok(()), |i, a| {
+        let error = syn::Error::new(a.span(), "Expected only a single prse attribute.");
+        match i {
+            Ok(()) => Err(error),
+            Err(mut e) => {
+                e.combine(error);
+                Err(e)
+            }
+        }
+    })
+}
+
+fn get_variant_attributes(
+    iter: impl Iterator<Item = Variant>,
+    input_span: Span,
+) -> syn::Result<Option<Vec<(Ident, Fields)>>> {
+    iter.map(|v| {
+        (
+            (v.ident, v.fields),
+            attribute_instructions(v.attrs.into_iter()),
+        )
+    })
+    .try_fold(
+        Some(vec![]),
+        |i, ((v_ident, v_fields), instructions)| match i {
+            Some(mut v) if v.is_empty() => match instructions? {
+                None => Ok(None),
+                Some(instr) => {
+                    v.push((v_ident, validate_fields(v_fields, instr)?));
+                    Ok(Some(v))
+                }
+            },
+            Some(mut v) => match instructions? {
+                None => Err(syn::Error::new(
+                    input_span,
+                    "The derive macro must either have an attribute on each field or none at all.",
+                )),
+                Some(instr) => {
+                    v.push((v_ident, validate_fields(v_fields, instr)?));
+                    Ok(Some(v))
+                }
+            },
+            None => match instructions? {
+                None => Ok(None),
+                Some(_) => Err(syn::Error::new(
+                    input_span,
+                    "The derive macro must either have an attribute on each field or none at all.",
+                )),
+            },
+        },
+    )
 }
 
 pub(crate) fn expand_derive(input: DeriveInput) -> TokenStream {
