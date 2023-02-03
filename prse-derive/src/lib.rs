@@ -7,11 +7,10 @@ extern crate quote;
 #[macro_use]
 extern crate syn;
 
-use derive::expand_derive;
+use derive::Derive;
 use invocation::ParseInvocation;
 use proc_macro::TokenStream;
 use quote::ToTokens;
-use syn::DeriveInput;
 
 mod derive;
 mod instructions;
@@ -133,9 +132,9 @@ pub fn try_parse(input: TokenStream) -> TokenStream {
     input.try_parse = true;
     input.to_token_stream().into()
 }
-
+///
 #[proc_macro_derive(LendingFromStr, attributes(prse))]
 pub fn lending_from_str(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-    expand_derive(input).into()
+    let _input = parse_macro_input!(input as Derive);
+    TokenStream::new()
 }
