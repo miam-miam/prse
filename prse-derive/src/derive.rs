@@ -18,6 +18,13 @@ pub(crate) enum Fields {
 }
 
 fn validate_fields(fields: syn::Fields, instructions: Vec<Instruction>) -> syn::Result<Fields> {
+    match fields {
+        syn::Fields::Unit => {
+            let mut iter = instructions.into_iter();
+        }
+        syn::Fields::Named(fields) => {}
+        syn::Fields::Unnamed(_) => {}
+    }
     todo!()
 }
 
