@@ -1,11 +1,9 @@
-use crate::instructions::{get_instructions, Instruction, Var};
-use proc_macro2::{Ident, Span, TokenStream};
-use quote::ToTokens;
+use crate::instructions::{Instruction, Instructions};
+use crate::var::Var;
+use proc_macro2::{Ident, Span};
 use std::collections::HashSet;
 use syn::parse::{Parse, ParseStream};
-use syn::{
-    Attribute, Data, DeriveInput, Generics, Lit, LitStr, Meta, MetaNameValue, Type, Variant,
-};
+use syn::{Attribute, Data, DeriveInput, Generics, Lit, LitStr, Meta, MetaNameValue, Variant};
 
 #[derive(Clone)]
 pub(crate) enum Derive {
@@ -16,24 +14,22 @@ pub(crate) enum Derive {
 
 #[derive(Clone)]
 pub(crate) enum Fields {
-    Named(Vec<(Ident, Type)>, Vec<Instruction>),
-    Unnamed(Vec<Type>, Vec<Instruction>),
-    Unit(Instruction),
+    Named(Instructions),
+    Unnamed(Instructions),
+    Unit(String),
 }
 
 fn validate_fields(
     fields: syn::Fields,
-    instructions: Vec<Instruction>,
+    instructions: Instructions,
     span: Span,
 ) -> syn::Result<Fields> {
     match fields {
         syn::Fields::Unit => {
-            let mut iter = instructions.into_iter();
+            let mut iter = instructions.0.into_iter();
             match iter.next() {
-                None => Ok(Fields::Unit(Instruction::Lit("".into()))),
-                Some(Instruction::Lit(s)) if iter.next().is_none() => {
-                    Ok(Fields::Unit(Instruction::Lit(s)))
-                }
+                None => Ok(Fields::Unit("".into())),
+                Some(Instruction::Lit(s)) if iter.next().is_none() => Ok(Fields::Unit(s)),
                 _ => Err(syn::Error::new(
                     span,
                     "A unit field cannot contain variables",
@@ -47,7 +43,7 @@ fn validate_fields(
                 .map(|f| (f.ident.unwrap(), f.ty))
                 .collect();
             let mut seen_idents = HashSet::new();
-            for i in instructions.iter() {
+            for i in instructions.0.iter() {
                 match i.get_var() {
                     None => {}
                     Some(Var::Ident(ident)) => {
@@ -74,12 +70,12 @@ fn validate_fields(
                     }
                 }
             }
-            Ok(Fields::Named(fields, instructions))
+            Ok(Fields::Named(instructions))
         }
         syn::Fields::Unnamed(fields) => {
             let max = fields.unnamed.iter().count() - 1;
             let mut count = 0;
-            for i in instructions.iter() {
+            for i in instructions.0.iter() {
                 match i.get_var() {
                     Some(Var::Ident(ident)) => {
                         return Err(syn::Error::new(
@@ -105,10 +101,7 @@ fn validate_fields(
                     _ => {}
                 }
             }
-            Ok(Fields::Unnamed(
-                fields.unnamed.into_iter().map(|f| f.ty).collect(),
-                instructions,
-            ))
+            Ok(Fields::Unnamed(instructions))
         }
     }
 }
@@ -154,7 +147,7 @@ impl Parse for Derive {
 
 fn attribute_instructions(
     mut attrs: impl Iterator<Item = Attribute>,
-) -> syn::Result<Option<(Vec<Instruction>, Span)>> {
+) -> syn::Result<Option<(Instructions, Span)>> {
     while let Some(a) = attrs.next() {
         if let Some(lit) = get_prse_lit(&a)? {
             for a in attrs.by_ref() {
@@ -165,10 +158,9 @@ fn attribute_instructions(
                     ));
                 }
             }
-            dbg!(&a.tokens);
             let span = lit.span();
             let lit_string = lit.value();
-            return Ok(Some((get_instructions(&lit_string, span)?, span)));
+            return Ok(Some((Instructions::new(&lit_string, span)?, span)));
         }
     }
     Ok(None)
@@ -252,36 +244,4 @@ fn get_variant_attributes(
             },
         },
     )
-}
-
-pub(crate) fn _expand_derive(_input: DeriveInput) -> TokenStream {
-    // match input.data
-    todo!()
-}
-//
-// fn expand_field(fields: FieldsNamed) -> TokenStream {}
-//
-// fn expand_tuple(fields: FieldsUnnamed) -> TokenStream {}
-//
-// fn expand_unit() -> TokenStream {}
-
-fn _expand_default(mut generics: Generics, name: Ident) -> TokenStream {
-    let ty_generics = generics.split_for_impl().1.to_token_stream();
-
-    generics.params.push(parse_quote!('__prse_a));
-    let predicates = &mut generics.make_where_clause().predicates;
-    predicates.push(parse_quote!(Self: ::core::str::FromStr));
-    predicates.push(parse_quote!(
-        <Self as ::core::str::FromStr>::Err: core::convert::Into<::prse::ParseError>
-    ));
-    let (impl_generics, _, where_clause) = generics.split_for_impl();
-
-    quote! {
-        #[automatically_derived]
-        impl #impl_generics ::prse::LendingFromStr<'__prse_a> for #name #ty_generics #where_clause {
-            fn from_str(s: &'__prse_a str) -> Result<Self, ::prse::ParseError> {
-                <Self as ::core::str::FromStr>::from_str(&s).map_err(|e| e.into())
-            }
-        }
-    }
 }

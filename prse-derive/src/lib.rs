@@ -13,8 +13,11 @@ use proc_macro::TokenStream;
 use quote::ToTokens;
 
 mod derive;
+mod expand_derive;
 mod instructions;
 mod invocation;
+mod var;
+
 /// The `parse` macro allows you to parse a string into any type that implements [`LendingFromStr`](trait.LendingFromStr.html).
 ///
 /// ```ignore
@@ -135,6 +138,6 @@ pub fn try_parse(input: TokenStream) -> TokenStream {
 ///
 #[proc_macro_derive(LendingFromStr, attributes(prse))]
 pub fn lending_from_str(input: TokenStream) -> TokenStream {
-    let _input = parse_macro_input!(input as Derive);
-    TokenStream::new()
+    let input = parse_macro_input!(input as Derive);
+    input.into_token_stream().into()
 }
