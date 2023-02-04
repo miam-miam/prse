@@ -59,9 +59,9 @@ use prse::{parse, Parse};
 
 #[derive(Parse, PartialEq, Eq, Debug)]
 #[prse = "({x}, {y})"]
-struct Position {
-    x: i32,
-    y: i32,
+struct Position { 
+	x: i32, 
+	y: i32,
 }
 
 let input = "(1, 3) + (-2, 9)";
