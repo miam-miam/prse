@@ -176,7 +176,7 @@ impl Instructions {
         }
 
         quote! {
-            fn #func_name <'a, #(#generics: LendingFromStr<'a>),* >(
+            fn #func_name <'a, #(#generics: Parse<'a>),* >(
                 mut __prse_input: &'a str,
             ) -> ::core::result::Result<( #(#return_types),* ), ::prse::ParseError> {
                 #body

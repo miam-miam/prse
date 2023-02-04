@@ -22,7 +22,7 @@ impl Derive {
 
                 quote! {
                     #[automatically_derived]
-                    impl #impl_generics ::prse::LendingFromStr<'__prse_a> for #name #ty_generics #where_clause {
+                    impl #impl_generics ::prse::Parse<'__prse_a> for #name #ty_generics #where_clause {
                         fn from_str(s: &'__prse_a str) -> Result<Self, ::prse::ParseError> {
                             #tokens
                         }
@@ -49,7 +49,7 @@ impl Derive {
 
                 quote! {
                     #[automatically_derived]
-                    impl #impl_generics ::prse::LendingFromStr<'__prse_a> for #name #ty_generics #where_clause {
+                    impl #impl_generics ::prse::Parse<'__prse_a> for #name #ty_generics #where_clause {
                         fn from_str(s: &'__prse_a str) -> Result<Self, ::prse::ParseError> {
                             #result
                         }
@@ -83,7 +83,7 @@ fn expand_field(
 
     quote! {
         {
-            use ::prse::{ExtParseStr, LendingFromStr};
+            use ::prse::{ExtParseStr, Parse};
 
             #function
 
@@ -118,7 +118,7 @@ fn expand_tuple(
 
     quote! {
         {
-            use ::prse::{ExtParseStr, LendingFromStr};
+            use ::prse::{ExtParseStr, Parse};
 
             #function
 
@@ -165,7 +165,7 @@ fn expand_default(mut generics: Generics, name: Ident) -> TokenStream {
 
     quote! {
         #[automatically_derived]
-        impl #impl_generics ::prse::LendingFromStr<'__prse_a> for #name #ty_generics #where_clause {
+        impl #impl_generics ::prse::Parse<'__prse_a> for #name #ty_generics #where_clause {
             fn from_str(s: &'__prse_a str) -> Result<Self, ::prse::ParseError> {
                 <Self as ::core::str::FromStr>::from_str(&s).map_err(|e| e.into())
             }
@@ -187,7 +187,7 @@ fn split_for_impl(
         .filter_map(|p| {
             if let GenericParam::Type(t) = p {
                 let t = &t.ident;
-                Some(parse_quote!(#t: ::prse::LendingFromStr<'__prse_a>))
+                Some(parse_quote!(#t: ::prse::Parse<'__prse_a>))
             } else {
                 None
             }

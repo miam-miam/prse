@@ -4,19 +4,20 @@ use core::str::FromStr;
 use crate::parse_error::ParseError;
 
 /// Parse a string into the implemented type, unlike [`FromStr`] this trait allows
-/// you to borrow the string.
-pub trait LendingFromStr<'a> {
+/// you to borrow the string. It can be automatically derived using
+/// [`Parse`](prse_derive::Parse) and was previously called `LendingFromStr`.
+pub trait Parse<'a> {
     /// Parses a string `s` to a return value of this type.
     ///
     /// If parsing succeeds, return the value inside [`Ok`], otherwise
     /// when the string is ill-formatted return a [`ParseError`].
     ///
     /// ```
-    /// # use prse::{parse, LendingFromStr, ParseError};
+    /// # use prse::{parse, Parse, ParseError};
     /// # #[derive(PartialEq, Debug)]
     /// struct Count<'b>(&'b str, u32);
     ///
-    /// impl<'a> LendingFromStr<'a> for Count<'a> {
+    /// impl<'a> Parse<'a> for Count<'a> {
     ///     fn from_str(s: &'a str) -> Result<Self, ParseError> {
     ///         let (fruit, count) = s.split_once(':').ok_or_else(|| ParseError::new("expected a colon."))?;    
     ///         Ok(Count(<&'a str>::from_str(fruit)?, <u32>::from_str(count.trim())?))
@@ -31,16 +32,16 @@ pub trait LendingFromStr<'a> {
         Self: Sized;
 }
 
-impl<'a> LendingFromStr<'a> for &'a str {
+impl<'a> Parse<'a> for &'a str {
     fn from_str(s: &'a str) -> Result<Self, ParseError> {
         Ok(s)
     }
 }
 
-macro_rules! impl_lending_from_str {
+macro_rules! impl_parse {
     ( $( $Ty: ty )+) => {
         $(
-            impl<'a> LendingFromStr<'a> for $Ty {
+            impl<'a> Parse<'a> for $Ty {
                 fn from_str(s: &'a str) -> Result<Self, ParseError> {
                     <Self as FromStr>::from_str(&s).map_err(|e| e.into())
                 }
@@ -50,10 +51,10 @@ macro_rules! impl_lending_from_str {
 }
 
 #[cfg(feature = "alloc")]
-macro_rules! impl_lending_from_str_infallible {
+macro_rules! impl_parse_infallible {
     ( $( $Ty: ty )+) => {
         $(
-            impl<'a> LendingFromStr<'a> for $Ty {
+            impl<'a> Parse<'a> for $Ty {
                 fn from_str(s: &'a str) -> Result<Self, ParseError> {
                     Ok(<Self as FromStr>::from_str(&s).unwrap())
                 }
@@ -62,45 +63,48 @@ macro_rules! impl_lending_from_str_infallible {
     };
 }
 
-impl_lending_from_str!(isize i8 i16 i32 i64 i128 usize u8 u16 u32 u64 u128);
-impl_lending_from_str!(bool char f32 f64);
-impl_lending_from_str!(NonZeroU8 NonZeroU16 NonZeroU32 NonZeroU64 NonZeroU128 NonZeroUsize);
-impl_lending_from_str!(NonZeroI8 NonZeroI16 NonZeroI32 NonZeroI64 NonZeroI128 NonZeroIsize);
+impl_parse!(isize i8 i16 i32 i64 i128 usize u8 u16 u32 u64 u128);
+impl_parse!(bool char f32 f64);
+impl_parse!(NonZeroU8 NonZeroU16 NonZeroU32 NonZeroU64 NonZeroU128 NonZeroUsize);
+impl_parse!(NonZeroI8 NonZeroI16 NonZeroI32 NonZeroI64 NonZeroI128 NonZeroIsize);
 
 #[cfg(feature = "alloc")]
 mod impl_alloc {
     extern crate alloc;
-    use super::{FromStr, LendingFromStr, ParseError};
+
     use alloc::string::String;
 
-    impl_lending_from_str_infallible!(String);
+    use super::{FromStr, Parse, ParseError};
+
+    impl_parse_infallible!(String);
 }
 
 #[cfg(feature = "std")]
 mod impl_std {
-    use super::{FromStr, LendingFromStr, ParseError};
     use std::ffi::OsString;
     use std::net::*;
     use std::path::PathBuf;
 
-    impl_lending_from_str_infallible!(OsString PathBuf);
-    impl_lending_from_str!(IpAddr SocketAddr Ipv4Addr Ipv6Addr SocketAddrV4 SocketAddrV6);
+    use super::{FromStr, Parse, ParseError};
+
+    impl_parse_infallible!(OsString PathBuf);
+    impl_parse!(IpAddr SocketAddr Ipv4Addr Ipv6Addr SocketAddrV4 SocketAddrV6);
 }
 
-/// An str extension trait to allow you to call the `from_str` from [`LendingFromStr`]
+/// An str extension trait to allow you to call the `from_str` from [`Parse`]
 /// without specifying the type.
 ///
 /// The trait is sealed and cannot be implemented on any other type.
 pub trait ExtParseStr: __private::Sealed {
     /// Parses the string slice into another type.
     ///
-    /// lending_parse can parse into any type that implements the [`LendingFromStr`] trait.
-    fn lending_parse<'a, F: LendingFromStr<'a>>(&'a self) -> Result<F, ParseError>;
+    /// lending_parse can parse into any type that implements the [`Parse`] trait.
+    fn lending_parse<'a, F: Parse<'a>>(&'a self) -> Result<F, ParseError>;
 }
 
 impl ExtParseStr for str {
-    fn lending_parse<'a, F: LendingFromStr<'a>>(&'a self) -> Result<F, ParseError> {
-        LendingFromStr::from_str(self)
+    fn lending_parse<'a, F: Parse<'a>>(&'a self) -> Result<F, ParseError> {
+        Parse::from_str(self)
     }
 }
 

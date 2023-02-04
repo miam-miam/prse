@@ -1,40 +1,40 @@
 #![allow(unused)]
-use prse::{parse, LendingFromStr};
+use prse::{parse, Parse};
 
-#[derive(LendingFromStr)]
+#[derive(Parse)]
 #[prse = "{x} - {y}"]
 union A {
     x: usize,
     y: u32,
 }
 
-#[derive(LendingFromStr)]
+#[derive(Parse)]
 struct B {
     #[prse = "{x} - {y}"]
     x: usize,
     y: usize,
 }
 
-#[derive(LendingFromStr)]
+#[derive(Parse)]
 struct C {
     y: usize,
     #[prse = "{x} - {y}"]
     x: usize,
 }
 
-#[derive(LendingFromStr)]
+#[derive(Parse)]
 #[prse = "D: {}"]
 struct D;
 
-#[derive(LendingFromStr)]
+#[derive(Parse)]
 #[prse = "E: {0}"]
 struct E;
 
-#[derive(LendingFromStr)]
+#[derive(Parse)]
 #[prse = "F: {x}"]
 struct F;
 
-#[derive(LendingFromStr)]
+#[derive(Parse)]
 #[prse = "F: {x} {y}"]
 struct G {
     y: usize,
@@ -42,32 +42,32 @@ struct G {
     x: usize,
 }
 
-#[derive(LendingFromStr)]
+#[derive(Parse)]
 #[prse = "G: {a}"]
 #[prse = "G: {a} "]
 struct H {
     a: usize,
 }
 
-#[derive(LendingFromStr)]
+#[derive(Parse)]
 #[prse = "I"]
 enum I {
     Unit,
 }
 
-#[derive(LendingFromStr)]
+#[derive(Parse)]
 #[prse = "J"]
 enum J {
     #[prse = "J"]
     Unit,
 }
 
-#[derive(LendingFromStr)]
+#[derive(Parse)]
 enum K {
     Tup(#[prse = "K: {}"] usize, usize),
 }
 
-#[derive(LendingFromStr)]
+#[derive(Parse)]
 enum L {
     #[prse = "L"]
     Unit,
@@ -76,7 +76,7 @@ enum L {
     Unit3,
 }
 
-#[derive(LendingFromStr)]
+#[derive(Parse)]
 enum M {
     S {
         x: usize,
@@ -85,25 +85,25 @@ enum M {
     },
 }
 
-#[derive(LendingFromStr)]
+#[derive(Parse)]
 enum N {
     #[prse("N")]
     N,
 }
 
-#[derive(LendingFromStr)]
+#[derive(Parse)]
 enum O {
     #[prse]
     O,
 }
 
-#[derive(LendingFromStr)]
+#[derive(Parse)]
 enum P {
     #[prse = "{:,:0}"]
     P1(u32),
 }
 
-#[derive(LendingFromStr)]
+#[derive(Parse)]
 #[prse = "{x:,:0}"]
 struct Q {
     x: u32,

@@ -78,7 +78,7 @@ impl ToTokens for ParseInvocation {
 
         tokens.append_all(quote! {
             {
-                use ::prse::{ExtParseStr, LendingFromStr};
+                use ::prse::{ExtParseStr, Parse};
 
                 #function
 

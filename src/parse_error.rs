@@ -14,7 +14,7 @@ use std::error;
 #[cfg(feature = "std")]
 use std::net::AddrParseError;
 
-/// The error returned when trying to parse a type using [`try_parse`](crate::try_parse) or [`LendingFromStr`](crate::LendingFromStr).
+/// The error returned when trying to parse a type using [`try_parse`](crate::try_parse) or [`Parse`](crate::Parse).
 #[derive(Debug)]
 pub enum ParseError {
     /// The variant returned when an integer cannot be parsed.
@@ -72,13 +72,13 @@ impl ParseError {
     /// This function stores the passed message into the `Other` variant.
     /// And as such can only be used when using the `alloc` feature.
     ///
-    /// This function can be especially useful when trying to implement [`LendingFromStr`](crate::LendingFromStr).
+    /// This function can be especially useful when trying to implement [`Parse`](crate::Parse).
     /// ```
-    /// # use prse::{LendingFromStr, ParseError, ExtParseStr, parse};
+    /// # use prse::{Parse, ParseError, ExtParseStr, parse};
     /// # #[derive(PartialEq, Debug)]
     /// struct Bool(bool);
     ///
-    /// impl<'a> LendingFromStr<'a> for Bool {
+    /// impl<'a> Parse<'a> for Bool {
     ///     fn from_str(s: &'a str) -> Result<Self, ParseError> {
     ///         match s {
     ///             "false" | "False" => Ok(Bool(false)),

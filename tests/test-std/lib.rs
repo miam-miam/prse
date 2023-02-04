@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use prse::{parse, try_parse, ParseError};
+    use prse::{parse, try_parse, Parse, ParseError};
 
     #[test]
     fn ui() {
@@ -97,5 +97,58 @@ mod tests {
         parse!(input, "");
         let input = "Test";
         parse!(input, "Test")
+    }
+
+    #[derive(Debug, Parse)]
+    struct Position {
+        x: i32,
+        y: i32,
+    }
+
+    #[derive(Debug, Parse)]
+    #[prse = "({x}, {y})"]
+    struct Position2 {
+        x: i32,
+        y: i32,
+    }
+
+    #[derive(Debug, Parse, Eq, PartialEq)]
+    enum Position3 {
+        #[prse = "({x}, {y})"]
+        Position { x: i32, y: i32 },
+        #[prse = "({})"]
+        SinglePositon(i32),
+        #[prse = "()"]
+        NoPosition,
+    }
+
+    impl std::str::FromStr for Position {
+        type Err = ();
+
+        fn from_str(mut s: &str) -> Result<Self, Self::Err> {
+            s = s.strip_prefix('(').ok_or(())?;
+            s = s.strip_suffix(')').ok_or(())?;
+            let (x, y) = s.split_once(',').ok_or(())?;
+            Ok(Position {
+                x: x.parse().map_err(|_| ())?,
+                y: y.trim().parse().map_err(|_| ())?,
+            })
+        }
+    }
+
+    #[test]
+    fn doc_test() {
+        let pos: Position = parse!("This is a position: (1, 2)", "This is a position: {}");
+        let pos2: Position2 = parse!("This is a position: (-4, 5)", "This is a position: {}");
+        assert_eq!(pos.x, 1);
+        assert_eq!(pos.y, 2);
+        assert_eq!(pos2.x, -4);
+        assert_eq!(pos2.y, 5);
+        let pos0: Position3 = parse!("This is a position: (1, 2)", "This is a position: {}");
+        let pos1: Position3 = parse!("This is a position: (3)", "This is a position: {}");
+        let pos2: Position3 = parse!("This is a position: ()", "This is a position: {}");
+        assert_eq!(pos0, Position3::Position { x: 1, y: 2 });
+        assert_eq!(pos1, Position3::SinglePositon(3));
+        assert_eq!(pos2, Position3::NoPosition);
     }
 }

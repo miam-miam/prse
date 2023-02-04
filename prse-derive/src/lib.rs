@@ -18,7 +18,8 @@ mod instructions;
 mod invocation;
 mod var;
 
-/// The `parse` macro allows you to parse a string into any type that implements [`LendingFromStr`](trait.LendingFromStr.html).
+/// The `parse` macro allows you to parse a string into any type that implements [`Parse`](trait.Parse.html).
+/// (Which can be derived with the [`Parse`](derive.Parse.html) macro)
 ///
 /// ```ignore
 /// let input = "5 + -2 = 3";
@@ -135,9 +136,82 @@ pub fn try_parse(input: TokenStream) -> TokenStream {
     input.try_parse = true;
     input.to_token_stream().into()
 }
+
+/// Automatically implements the [`Parse`](trait.Parse.html) trait using one of two methods.
 ///
-#[proc_macro_derive(LendingFromStr, attributes(prse))]
-pub fn lending_from_str(input: TokenStream) -> TokenStream {
+/// You can define how each field should be parsed using the `prse` attribute.
+///
+///```ignore
+/// use prse::{parse, Parse};
+///
+/// #[derive(Debug, Parse)]
+/// #[prse = "({x}, {y})"]
+/// struct Position {
+///     x: i32,
+///     y: i32,
+/// }
+///
+/// fn main() {
+///     let pos: Position = parse!("This is a position: (1, 2)", "This is a position: {}");
+///     assert_eq!(pos.x, 1);
+///     assert_eq!(pos.y, 2);
+/// }
+///```
+///
+/// This can also be done on enums.
+///
+///```ignore
+/// use prse::{parse, Parse};
+///
+/// #[derive(Debug, Parse, Eq, PartialEq)]
+/// enum Position {
+///     #[prse = "({x}, {y})"]
+///     Position { x: i32, y: i32 },
+///     #[prse = "({})"]
+///     SinglePositon(i32),
+///     #[prse = "()"]
+///     NoPosition,
+/// }
+///
+/// // the first prse attribute to match is used.
+/// let pos0: Position = parse!("This is a position: (1, 2)", "This is a position: {}");
+/// let pos1: Position = parse!("This is a position: (3)", "This is a position: {}");
+/// let pos2: Position = parse!("This is a position: ()", "This is a position: {}");
+///
+/// assert_eq!(pos0, Position::Position { x: 1, y: 2 });
+/// assert_eq!(pos1, Position::SinglePositon(3));
+/// assert_eq!(pos2, Position::NoPosition);
+///```
+/// If no prse attributes are found, it will use your [`FromStr`](core::str::FromStr) implementation.
+/// ```ignore
+/// use prse::{parse, Parse};
+///
+/// #[derive(Debug, Parse)]
+/// struct Position {
+///     x: i32,
+///     y: i32,
+/// }
+///
+/// impl std::str::FromStr for Position {
+///     type Err = ();
+///
+///     fn from_str(mut s: &str) -> Result<Self, Self::Err> {
+///         s = s.strip_prefix('(').ok_or(())?;
+///         s = s.strip_suffix(')').ok_or(())?;
+///         let (x, y) = s.split_once(',').ok_or(())?;
+///         Ok(Position {
+///             x: x.parse().map_err(|_| ())?,
+///             y: y.trim().parse().map_err(|_| ())?,
+///         })
+///     }
+/// }
+///
+/// let pos: Position = parse!("This is a position: (1, 2)", "This is a position: {}");
+/// assert_eq!(pos.x, 1);
+/// assert_eq!(pos.y, 2);
+/// ```
+#[proc_macro_derive(Parse, attributes(prse))]
+pub fn derive_parse(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as Derive);
     input.into_token_stream().into()
 }
