@@ -1,0 +1,101 @@
+error: The derive macro does not currently support unions.
+ --> ui/derive.rs:6:1
+  |
+6 | union A {
+  | ^^^^^
+
+error: Unexpected prse attribute.
+  --> ui/derive.rs:13:6
+   |
+13 |     #[prse = "{x} - {y}"]
+   |      ^^^^^^^^^^^^^^^^^^^^
+
+error: Unexpected prse attribute.
+  --> ui/derive.rs:21:6
+   |
+21 |     #[prse = "{x} - {y}"]
+   |      ^^^^^^^^^^^^^^^^^^^^
+
+error: A unit field cannot contain variables
+  --> ui/derive.rs:26:10
+   |
+26 | #[prse = "D: {}"]
+   |          ^^^^^^^
+
+error: A unit field cannot contain variables
+  --> ui/derive.rs:30:10
+   |
+30 | #[prse = "E: {0}"]
+   |          ^^^^^^^^
+
+error: A unit field cannot contain variables
+  --> ui/derive.rs:34:10
+   |
+34 | #[prse = "F: {x}"]
+   |          ^^^^^^^^
+
+error: Unexpected prse attribute.
+  --> ui/derive.rs:41:6
+   |
+41 |     #[prse = "{x} - {y}"]
+   |      ^^^^^^^^^^^^^^^^^^^^
+
+error: Expected only a single prse attribute.
+  --> ui/derive.rs:47:2
+   |
+47 | #[prse = "G: {a} "]
+   |  ^^^^^^^^^^^^^^^^^^
+
+error: Unexpected prse attribute.
+  --> ui/derive.rs:53:2
+   |
+53 | #[prse = "I"]
+   |  ^^^^^^^^^^^^
+
+error: Unexpected prse attribute.
+  --> ui/derive.rs:59:2
+   |
+59 | #[prse = "J"]
+   |  ^^^^^^^^^^^^
+
+error: Unexpected prse attribute.
+  --> ui/derive.rs:67:10
+   |
+67 |     Tup(#[prse = "K: {}"] usize, usize),
+   |          ^^^^^^^^^^^^^^^^
+
+error: The derive macro must either have an attribute on each field or none at all.
+  --> ui/derive.rs:71:6
+   |
+71 | enum L {
+   |      ^
+
+error: Unexpected prse attribute.
+  --> ui/derive.rs:83:10
+   |
+83 |         #[prse = "Test: {y}"]
+   |          ^^^^^^^^^^^^^^^^^^^^
+
+error: prse attribute must be of the form #[prse = "parse_string"]
+  --> ui/derive.rs:90:6
+   |
+90 |     #[prse("N")]
+   |      ^^^^^^^^^^^
+
+error: prse attribute must be of the form #[prse = "parse_string"]
+  --> ui/derive.rs:96:6
+   |
+96 |     #[prse]
+   |      ^^^^^^
+
+error: Iterator parsing is not supported as the iterator is an opaque type.
+   --> ui/derive.rs:102:14
+    |
+102 |     #[prse = "{:,:0}"]
+    |              ^^^^^^^^
+
+error: Iterator parsing is not supported as the iterator is an opaque type.
+   --> ui/derive.rs:107:10
+    |
+107 | #[prse = "{x:,:0}"]
+    |          ^^^^^^^^^

@@ -1,49 +1,10 @@
+use crate::invocation::string_to_tokens;
+use crate::var;
+use crate::var::Var;
 use itertools::Itertools;
-use proc_macro2::{Ident, Span};
-use syn::parse::{Parse, ParseStream};
-use syn::{parse_str, LitInt};
-
-#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
-pub enum Var {
-    Implied,
-    Ident(Ident),
-    Position(u8),
-}
-
-impl Var {
-    pub fn add_span(&mut self, span: Span) {
-        if let Var::Ident(i) = self {
-            i.set_span(span)
-        }
-    }
-}
-
-impl Parse for Var {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        if input.is_empty() {
-            Ok(Var::Implied)
-        } else {
-            match input.parse::<LitInt>() {
-                Ok(l) => {
-                    let pos: u8 = l
-                        .base10_parse()
-                        .map_err(|_| input.error("position must be between 0 and 255."))?;
-                    if !input.is_empty() {
-                        return Err(input.error("expected count."));
-                    }
-                    Ok(Var::Position(pos))
-                }
-                Err(_) => {
-                    let res = input.parse::<Ident>().map(Var::Ident)?;
-                    if !input.is_empty() {
-                        return Err(input.error("expected identifier"));
-                    }
-                    Ok(res)
-                }
-            }
-        }
-    }
-}
+use proc_macro2::Span;
+use proc_macro2::{Ident, TokenStream};
+use quote::{ToTokens, TokenStreamExt};
 
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub enum Instruction {
@@ -66,202 +27,289 @@ impl Instruction {
     }
 }
 
-pub fn get_instructions(input: &str, input_span: Span) -> syn::Result<Vec<Instruction>> {
-    let mut i = input.chars().multipeek();
-    let mut var_mode = false;
-    let mut val = String::new();
-    let mut instructions = vec![];
-    while let Some(c) = i.next() {
-        match (c, var_mode) {
-            ('{', false) => {
-                // Character has been escaped.
-                if let Some('{') = i.peek() {
-                    val.push(c);
-                    i.next().unwrap();
-                } else {
-                    if !val.is_empty() {
-                        instructions.push(Instruction::Lit(val));
-                    }
-                    val = String::new();
-                    var_mode = true;
-                }
-            }
-            ('}', false) => {
-                if let Some('}') = i.peek() {
-                    val.push(c);
-                    i.next().unwrap();
-                } else {
-                    return Err(syn::Error::new(
-                        input_span,
-                        "Found unexpected } bracket. Consider escaping it by changing it to }}.",
-                    ));
-                }
-            }
-            ('{', true) => {
-                if let Some('{') = i.peek() {
-                    val.push(c);
-                    i.next().unwrap();
-                } else {
-                    return Err(syn::Error::new(
-                        input_span,
-                        "Unescaped {, consider changing to {{.",
-                    ));
-                }
-            }
-            ('}', true) => {
-                if let Some('}') = i.peek() {
-                    if i.peek() != Some(&'}') {
+#[derive(Ord, PartialOrd, Eq, PartialEq, Debug, Clone)]
+pub(crate) struct Instructions(pub Vec<Instruction>);
+
+impl Instructions {
+    pub fn new(input: &str, input_span: Span) -> syn::Result<Instructions> {
+        let mut i = input.chars().multipeek();
+        let mut var_mode = false;
+        let mut val = String::new();
+        let mut instructions = vec![];
+        while let Some(c) = i.next() {
+            match (c, var_mode) {
+                ('{', false) => {
+                    // Character has been escaped.
+                    if let Some('{') = i.peek() {
                         val.push(c);
                         i.next().unwrap();
-                        continue;
+                    } else {
+                        if !val.is_empty() {
+                            instructions.push(Instruction::Lit(val));
+                        }
+                        val = String::new();
+                        var_mode = true;
                     }
                 }
-                if !matches!(instructions.last(), Some(Instruction::Lit(_)) | None) {
-                    return Err(syn::Error::new(
-                        input_span,
-                        "Cannot have two captures without a string in between.",
-                    ));
-                }
-                instructions.push(parse_var(val, input_span)?);
-                val = String::new();
-                var_mode = false;
-            }
-            (c, _) => val.push(c),
-        }
-    }
-    if var_mode {
-        return Err(syn::Error::new(
-            input_span,
-            "Expected to find } bracket. Consider adding a } bracket to close the open { bracket.",
-        ));
-    }
-    if !val.is_empty() {
-        instructions.push(Instruction::Lit(val));
-    }
-
-    validate_instructions(instructions, input_span)
-}
-
-fn validate_instructions(
-    instructions: Vec<Instruction>,
-    input_span: Span,
-) -> syn::Result<Vec<Instruction>> {
-    if instructions
-        .iter()
-        .any(|i| matches!(i.get_var(), Some(Var::Position(_))))
-    {
-        if !instructions
-            .iter()
-            .any(|i| matches!(i.get_var(), Some(Var::Implied)))
-        {
-            let has_constant_step = instructions
-                .iter()
-                .flat_map(|i| match i.get_var() {
-                    Some(Var::Position(p)) => Some(p),
-                    _ => None,
-                })
-                .sorted()
-                .zip(0_u8..)
-                .all(|(i, p)| i == &p);
-            if has_constant_step {
-                Ok(instructions)
-            } else {
-                Err(syn::Error::new(input_span, "Each positional argument much uniquely map to a corresponding index in the returned tuple."))
-            }
-        } else {
-            Err(syn::Error::new(
-                input_span,
-                "Cannot use implied positional arguments with explicitly defined ones.",
-            ))
-        }
-    } else {
-        Ok(instructions)
-    }
-}
-
-fn parse_var(input: String, input_span: Span) -> syn::Result<Instruction> {
-    match input.split_once(':') {
-        Some((var, split)) => {
-            let mut var: Var = parse_str(var)?;
-            var.add_span(input_span);
-            if let Some((sep, num)) = split.rsplit_once(':') {
-                if sep.is_empty() {
-                    return Err(syn::Error::new(input_span, "separator cannot be empty."));
-                }
-                Ok(if num.trim().is_empty() {
-                    if !cfg!(feature = "alloc") {
+                ('}', false) => {
+                    if let Some('}') = i.peek() {
+                        val.push(c);
+                        i.next().unwrap();
+                    } else {
                         return Err(syn::Error::new(
                             input_span,
-                            "alloc feature is required to parse into a Vec.",
+                            "Found unexpected } bracket. Consider escaping it by changing it to }}.",
                         ));
                     }
-                    Instruction::VecParse(var, String::from(sep))
-                } else {
-                    match num.parse() {
-                        Ok(0_u8) => Instruction::IterParse(var, String::from(sep)),
-                        Ok(x) => Instruction::MultiParse(var, String::from(sep), x),
-                        Err(_) => {
-                            return Err(syn::Error::new(
-                                input_span,
-                                format!("expected a number between 0 and 255 but found {num}."),
-                            ));
+                }
+                ('{', true) => {
+                    if let Some('{') = i.peek() {
+                        val.push(c);
+                        i.next().unwrap();
+                    } else {
+                        return Err(syn::Error::new(
+                            input_span,
+                            "Unescaped {, consider changing to {{.",
+                        ));
+                    }
+                }
+                ('}', true) => {
+                    if let Some('}') = i.peek() {
+                        if i.peek() != Some(&'}') {
+                            val.push(c);
+                            i.next().unwrap();
+                            continue;
                         }
                     }
-                })
+                    if !matches!(instructions.last(), Some(Instruction::Lit(_)) | None) {
+                        return Err(syn::Error::new(
+                            input_span,
+                            "Cannot have two captures without a string in between.",
+                        ));
+                    }
+                    instructions.push(var::parse_var(val, input_span)?);
+                    val = String::new();
+                    var_mode = false;
+                }
+                (c, _) => val.push(c),
+            }
+        }
+        if var_mode {
+            return Err(syn::Error::new(
+                input_span,
+                "Expected to find } bracket. Consider adding a } bracket to close the open { bracket.",
+            ));
+        }
+        if !val.is_empty() {
+            instructions.push(Instruction::Lit(val));
+        }
+
+        Self::validate_instructions(instructions, input_span)
+    }
+
+    fn validate_instructions(
+        instructions: Vec<Instruction>,
+        input_span: Span,
+    ) -> syn::Result<Instructions> {
+        if instructions
+            .iter()
+            .any(|i| matches!(i.get_var(), Some(Var::Position(_))))
+        {
+            if !instructions
+                .iter()
+                .any(|i| matches!(i.get_var(), Some(Var::Implied)))
+            {
+                let has_constant_step = instructions
+                    .iter()
+                    .flat_map(|i| match i.get_var() {
+                        Some(Var::Position(p)) => Some(p),
+                        _ => None,
+                    })
+                    .sorted()
+                    .zip(0_u8..)
+                    .all(|(i, p)| i == &p);
+                if has_constant_step {
+                    Ok(Instructions(instructions))
+                } else {
+                    Err(syn::Error::new(input_span, "Each positional argument much uniquely map to a corresponding index in the returned tuple."))
+                }
             } else {
                 Err(syn::Error::new(
                     input_span,
-                    "invalid multi parse, it must be of the form <var>:<sep>:<count>.",
+                    "Cannot use implied positional arguments with explicitly defined ones.",
                 ))
             }
-        }
-        None => {
-            let mut var: Var = parse_str(&input)?;
-            var.add_span(input_span);
-            Ok(Instruction::Parse(var))
+        } else {
+            Ok(Instructions(instructions))
         }
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use proc_macro2::Span;
+    pub fn gen_function(&self, body: TokenStream, func_name: Ident) -> TokenStream {
+        let mut return_types = vec![];
+        let mut generics = vec![];
+        for (idx, i) in self
+            .0
+            .iter()
+            .enumerate()
+            .filter(|(_, i)| !matches!(i, Instruction::Lit(_)))
+        {
+            let type_ident = format_ident!("T{idx}");
+            return_types.push(match i {
+                Instruction::Parse(_) => type_ident.to_token_stream(),
+                Instruction::VecParse(_, _) => {
+                    if cfg!(feature = "std") {
+                        quote!(::std::vec::Vec<#type_ident>)
+                    } else {
+                        quote!(::alloc::vec::Vec<#type_ident>)
+                    }
+                }
+                Instruction::IterParse(_, _) => quote! {
+                    impl ::core::iter::Iterator<Item = ::core::result::Result<#type_ident, ::prse::ParseError>> + 'a
+                },
+                Instruction::MultiParse(_, _, count) => {
+                    let count = *count as usize;
+                    quote! ([ #type_ident ; #count])
+                }
+                _ => unreachable!(),
+            });
+            generics.push(type_ident);
+        }
 
-    use crate::instructions::get_instructions;
+        quote! {
+            fn #func_name <'a, #(#generics: Parse<'a>),* >(
+                mut __prse_input: &'a str,
+            ) -> ::core::result::Result<( #(#return_types),* ), ::prse::ParseError> {
+                #body
+            }
+        }
+    }
 
-    #[test]
-    fn test_instruction_pass() {
-        use super::Instruction::*;
-        use super::Var::*;
-        #[rustfmt::skip]
-        let cases = [
-            ("{}", vec![Parse(Implied)]),
-            ("{} {}", vec![Parse(Implied), Lit(" ".into()), Parse(Implied)]),
-            ("{}\n{}", vec![Parse(Implied), Lit("\n".into()), Parse(Implied)]),
-            ("😇{}ángeĺ{}!", vec![Lit("😇".into()), Parse(Implied), Lit("ángeĺ".into()), Parse(Implied), Lit("!".into())]),
-            ("{}{{{}}}{}", vec![Parse(Implied), Lit("{".into()), Parse(Implied), Lit("}".into()), Parse(Implied)]),
-            (" {}{{:}}}}{} ", vec![Lit(" ".into()), Parse(Implied), Lit("{:}}".into()), Parse(Implied), Lit(" ".into())]),
-            (" {} {}}}{}", vec![Lit(" ".into()), Parse(Implied), Lit(" ".into()), Parse(Implied), Lit("}".into()), Parse(Implied)]),
-            ("{:}}:}", vec![VecParse(Implied, "}".into())]),
-            ("{:{{}}:}", vec![VecParse(Implied, "{}".into())]),
-            ("{:{{}}: }", vec![VecParse(Implied, "{}".into())]),
-            ("{hello}", vec![Parse(Ident(syn::Ident::new("hello", Span::call_site())))]),
-            ("{:,:5}", vec![MultiParse(Implied, ",".into(), 5)]),
-            ("{:,:0}", vec![IterParse(Implied, ",".into())]),
-            ("{:,:}", vec![VecParse(Implied, ",".into())]),
-            ("{:,::1}", vec![MultiParse(Implied, ",:".into(), 1)]),
-            ("{:,::0}", vec![IterParse(Implied, ",:".into())]),
-            ("{:,::}", vec![VecParse(Implied, ",:".into())]),
-            ("{::,::85}", vec![MultiParse(Implied, ":,:".into(), 85)]),
-            ("{::,::0}", vec![IterParse(Implied, ":,:".into())]),
-            ("{::,::}", vec![VecParse(Implied, ":,:".into())]),
-            ("{ 0  }", vec![Parse(Position(0))]),
-            ("{1} {0}", vec![Parse(Position(1)), Lit(" ".into()), Parse(Position(0))]),
-            ("{0} {  hiya }", vec![Parse(Position(0)), Lit(" ".into()), Parse(Ident(syn::Ident::new("hiya", Span::call_site())))]),
-        ];
-        for (input, expected) in cases {
-            let output = get_instructions(input, Span::call_site());
-            assert_eq!(output.unwrap(), expected);
+    pub fn gen_body(&self, result: &mut TokenStream) {
+        let mut store_token = None;
+        let alloc_crate: TokenStream = if cfg!(feature = "std") {
+            quote!(std)
+        } else {
+            quote!(alloc)
+        };
+
+        for (idx, i) in self.0.iter().enumerate() {
+            let var = format_ident!("__prse_{idx}");
+            match i {
+                Instruction::Lit(l_string) => {
+                    let l_string = string_to_tokens(l_string);
+
+                    result.append_all(if cfg!(feature = "alloc") {
+                        quote! {
+                            (__prse_parse, __prse_input) = __prse_input.split_once(#l_string)
+                                .ok_or_else(|| ::prse::ParseError::Literal {expected: (#l_string).into(), found: __prse_input.into()})?;
+                        }
+                    } else {
+                        quote! {
+                            (__prse_parse, __prse_input) = __prse_input.split_once(#l_string)
+                                .ok_or_else(|| ::prse::ParseError::Literal)?;
+                        }
+                    });
+
+                    if let Some(t) = store_token {
+                        store_token = None;
+                        result.append_all(t);
+                    }
+                }
+                Instruction::Parse(_) => {
+                    store_token = Some(quote! {
+                        let #var = __prse_parse.lending_parse()?;
+                    });
+                }
+                Instruction::VecParse(_, sep) => {
+                    let sep = string_to_tokens(sep);
+                    store_token = Some(quote! {
+                        let #var = __prse_parse.split(#sep)
+                            .map(|p| p.lending_parse())
+                            .collect::<::core::result::Result<::#alloc_crate::vec::Vec<_>, ::prse::ParseError>>()?;
+                    });
+                }
+                Instruction::IterParse(_, sep) => {
+                    let sep = string_to_tokens(sep);
+                    store_token = Some(quote! {
+                        let #var = __prse_parse.split(#sep)
+                            .map(|p| p.lending_parse());
+                    });
+                }
+                Instruction::MultiParse(_, sep, count) => {
+                    let sep = string_to_tokens(sep);
+                    let i = 0..*count;
+                    store_token = Some(quote! {
+                        let mut __prse_iter = __prse_parse.split(#sep)
+                            .map(|p| p.lending_parse());
+                        let #var = [ #(
+                            __prse_iter.next()
+                            .ok_or_else(|| ::prse::ParseError::Multi {
+                                expected: #count,
+                                found: #i,
+                            })??
+                        ),* ];
+                        if __prse_iter.next().is_some() {
+                            return Err(::prse::ParseError::Multi {
+                                expected: #count,
+                                found: #count + 1,
+                            });
+                        }
+                    });
+                }
+            };
+        }
+        result.append_all(store_token.map_or_else(|| if cfg!(feature = "alloc") {
+            quote! {
+                if !__prse_input.is_empty() {
+                    return Err(::prse::ParseError::Literal {expected: "".into(), found: __prse_input.into()})
+                }
+            }
+        } else {
+            quote! {
+                if !__prse_input.is_empty() {
+                    return Err(::prse::ParseError::Literal)
+                }
+            }
+        }, |t| quote! { __prse_parse = __prse_input; #t }));
+
+        let return_idents = self.0.iter().enumerate().filter_map(|(idx, i)| {
+            i.get_var()?;
+            Some(format_ident!("__prse_{idx}"))
+        });
+        result.append_all(quote! { Ok(( #(#return_idents),* )) });
+    }
+
+    pub fn gen_return_idents(
+        &self,
+        return_idents: &mut Vec<Ident>,
+        func_idents: &mut Vec<Ident>,
+        renames: &mut Vec<(Ident, Ident)>,
+    ) {
+        let mut num_positions = 0;
+
+        for (idx, instruction) in self
+            .0
+            .iter()
+            .enumerate()
+            .filter(|(_, i)| !matches!(i, Instruction::Lit(_)))
+        {
+            let var = instruction.get_var().unwrap();
+            let ident = format_ident!("__prse_{idx}");
+            match var {
+                Var::Implied => {
+                    func_idents.push(ident.clone());
+                    return_idents.push(ident);
+                }
+                Var::Ident(i) => {
+                    func_idents.push(ident.clone());
+                    renames.push((i.clone(), ident));
+                }
+                Var::Position(p) => {
+                    func_idents.push(format_ident!("__prse_pos_{p}"));
+                    return_idents.push(format_ident!("__prse_pos_{num_positions}"));
+                    num_positions += 1;
+                }
+            };
         }
     }
 }

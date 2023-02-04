@@ -14,9 +14,8 @@
 //! Prse is a no-std compatible small string parsing library with an emphasis on speed and ease of use.
 //!
 //! The [`parse!`] and [`try_parse!`] macros can parse anything in the standard library
-//! that implements [`FromStr`](std::str::FromStr), or any type that implements [`LendingFromStr`].
-//!
-//! <br>
+//! that implements [`FromStr`](std::str::FromStr), or any type that implements [`Parse`].
+//! (Which can be derived with the [`Parse`](derive.Parse.html) macro)
 //!
 //! # Examples
 //! ```
@@ -45,6 +44,26 @@
 //!         Err(e) => println!("{e:?}")
 //!     }
 //! }
+//! ```
+//!
+//! Additionally you can use the [`Parse`](prse_derive::Parse) derive macro to help you parse custom types.
+//!
+//! ```rust
+//! use prse::{parse, Parse};
+//!
+//! #[derive(Parse, PartialEq, Eq, Debug)]
+//! #[prse = "({x}, {y})"]
+//! struct Position {
+//!     x: i32,
+//!     y: i32,
+//! }
+//!
+//! let input = "(1, 3) + (-2, 9)";
+//!
+//! let (lhs, rhs): (Position, Position) = parse!(input, "{} + {}");
+//!
+//! assert_eq!(lhs, Position {x: 1, y: 3});
+//! assert_eq!(rhs, Position {x: -2, y: 9});
 //! ```
 //!
 //! # Repetition
@@ -100,9 +119,12 @@
 //! assert_eq!(animal_count, 79);
 //! ```
 
-pub use prse_derive::{parse, try_parse};
+pub use prse_derive::{parse, try_parse, Parse};
 
-pub use crate::lending_parse::{ExtParseStr, LendingFromStr};
+#[rustfmt::skip]
+pub use crate::lending_parse::{ExtParseStr, Parse};
+/// <b> Deprecated please use [`Parse`](crate::lending_parse::Parse) instead. </b>
+pub use crate::lending_parse::Parse as LendingFromStr;
 pub use crate::parse_error::ParseError;
 #[doc(hidden)]
 pub use crate::parse_error::__private;

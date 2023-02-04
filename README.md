@@ -39,7 +39,7 @@ parse!(input, "My farm contains some amount of booleans: {many: || :}");
 assert_eq!(many, vec![true, false, true, false]);
 ```
 
-Additionally you can use the [`try_parse!`] macro if you don't want to panic when the parsing fails.
+You can use the [`try_parse!`] macro if you don't want to panic when the parsing fails.
 
 [`try_parse!`]: https://docs.rs/prse/latest/prse/macro.try_parse.html
 
@@ -53,11 +53,29 @@ let path: Result<PathBuf, _> = try_parse!(input, "cd {}");
 assert_eq!(path.unwrap(), PathBuf::from("C:\\windows\\system32"));
 ```
 
-## Roadmap
+Additionally you can use the [`Parse`] derive macro to help you parse custom types.
+```rust
+use prse::{parse, Parse};
 
-- Benchmarking
-- Add a Derive macro for LendingFromStr
-- Have the ability to specify multiple parses if the first one fails
+#[derive(Parse, PartialEq, Eq, Debug)]
+#[prse = "({x}, {y})"]
+struct Position { 
+    x: i32, 
+    y: i32,
+}
+
+let input = "(1, 3) + (-2, 9)";
+
+let (lhs, rhs): (Position, Position) = parse!(input, "{} + {}");
+
+assert_eq!(lhs, Position {x: 1, y: 3});
+assert_eq!(rhs, Position {x: -2, y: 9});
+```
+
+[`Parse`]: https://docs.rs/prse/latest/prse/derive.Parse.html
+
+## Alternatives
+
 
 #### License
 
