@@ -97,4 +97,16 @@ enum O {
     O,
 }
 
+#[derive(LendingFromStr)]
+enum P {
+    #[prse = "{:,:0}"]
+    P1(u32),
+}
+
+#[derive(LendingFromStr)]
+#[prse = "{x:,:0}"]
+struct Q {
+    x: u32,
+}
+
 fn main() {}

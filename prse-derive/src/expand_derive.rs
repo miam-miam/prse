@@ -186,6 +186,7 @@ fn split_for_impl(
         .iter()
         .filter_map(|p| {
             if let GenericParam::Type(t) = p {
+                let t = &t.ident;
                 Some(parse_quote!(#t: ::prse::LendingFromStr<'__prse_a>))
             } else {
                 None
