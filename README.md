@@ -74,9 +74,6 @@ assert_eq!(rhs, Position {x: -2, y: 9});
 
 [`Parse`]: https://docs.rs/prse/latest/prse/derive.Parse.html
 
-## Alternatives
-
-
 #### License
 
 <sup>

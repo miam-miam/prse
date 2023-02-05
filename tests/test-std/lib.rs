@@ -136,6 +136,13 @@ mod tests {
         }
     }
 
+    #[derive(Debug, Parse, Eq, PartialEq)]
+    #[prse = "({x:::}, {y:::3})"]
+    struct Position4 {
+        x: Vec<i32>,
+        y: [i32; 3],
+    }
+
     #[test]
     fn doc_test() {
         let pos: Position = parse!("This is a position: (1, 2)", "This is a position: {}");
@@ -150,5 +157,13 @@ mod tests {
         assert_eq!(pos0, Position3::Position { x: 1, y: 2 });
         assert_eq!(pos1, Position3::SinglePositon(3));
         assert_eq!(pos2, Position3::NoPosition);
+        let pos4: Position4 = parse!("Position: (5:9:3, 9:8:7)", "Position: {}");
+        assert_eq!(
+            pos4,
+            Position4 {
+                x: vec![5, 9, 3],
+                y: [9, 8, 7]
+            }
+        )
     }
 }

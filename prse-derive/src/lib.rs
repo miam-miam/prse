@@ -140,6 +140,7 @@ pub fn try_parse(input: TokenStream) -> TokenStream {
 /// Automatically implements the [`Parse`](trait.Parse.html) trait using one of two methods.
 ///
 /// You can define how each field should be parsed using the `prse` attribute.
+/// The prse attribute uses the same syntax as [`parse!`] and even supports Vec and Array repetition.
 ///
 ///```ignore
 /// use prse::{parse, Parse};
