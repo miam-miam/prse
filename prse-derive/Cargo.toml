@@ -17,7 +17,7 @@ rust-version = "1.59"
 proc-macro = true
 
 [dependencies]
-syn = { version = "1.0.105", default-features = false, features = ["parsing", "derive", "proc-macro", "clone-impls", "printing"] }
+syn = { version = "2.0.2", default-features = false, features = ["parsing", "derive", "proc-macro", "clone-impls", "printing"] }
 quote = "1.0.21"
 proc-macro2 = "1.0.47"
 itertools = "0.10.5"
