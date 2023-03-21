@@ -3,7 +3,9 @@ use crate::var::Var;
 use proc_macro2::{Ident, Span};
 use std::collections::HashSet;
 use syn::parse::{Parse, ParseStream};
-use syn::{Attribute, Data, DeriveInput, Generics, Lit, LitStr, Meta, MetaNameValue, Variant};
+use syn::{
+    Attribute, Data, DeriveInput, Expr, Generics, Lit, LitStr, Meta, MetaNameValue, Variant,
+};
 
 #[derive(Clone)]
 pub(crate) enum Derive {
@@ -165,7 +167,7 @@ fn attribute_instructions(
             for a in attrs.by_ref() {
                 if get_prse_lit(&a)?.is_some() {
                     return Err(syn::Error::new(
-                        a.bracket_token.span,
+                        a.bracket_token.span.join(),
                         "Expected only a single prse attribute.",
                     ));
                 }
@@ -179,13 +181,17 @@ fn attribute_instructions(
 }
 
 fn get_prse_lit(a: &Attribute) -> syn::Result<Option<LitStr>> {
-    if a.path.is_ident("prse") {
-        match a.parse_meta()? {
+    if a.path().is_ident("prse") {
+        match &a.meta {
             Meta::NameValue(MetaNameValue {
-                lit: Lit::Str(l), ..
-            }) => Ok(Some(l)),
+                value:
+                    Expr::Lit(syn::ExprLit {
+                        lit: Lit::Str(l), ..
+                    }),
+                ..
+            }) => Ok(Some(l.clone())),
             _ => Err(syn::Error::new(
-                a.bracket_token.span,
+                a.bracket_token.span.join(),
                 "prse attribute must be of the form #[prse = \"parse_string\"]",
             )),
         }
@@ -196,7 +202,7 @@ fn get_prse_lit(a: &Attribute) -> syn::Result<Option<LitStr>> {
 
 fn no_attributes<'a>(attrs: impl Iterator<Item = &'a Attribute>) -> syn::Result<()> {
     attrs.fold(Ok(()), |i, a| {
-        let error = syn::Error::new(a.bracket_token.span, "Unexpected prse attribute.");
+        let error = syn::Error::new(a.bracket_token.span.join(), "Unexpected prse attribute.");
         let error = match get_prse_lit(a).map(|a| a.is_some()) {
             Err(mut e) => {
                 e.combine(error);
