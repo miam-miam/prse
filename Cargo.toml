@@ -6,7 +6,7 @@ members = [
 
 [package]
 name = "prse"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 authors = ["miam-miam100 <MiamMiam@mailbox.org>"]
 documentation = "https://docs.rs/prse/"
@@ -21,7 +21,7 @@ exclude = [".github", "examples"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-prse-derive = { version = "1.0.0", path="prse-derive", default-features = false }
+prse-derive = { version = "1.0.1", path="prse-derive", default-features = false }
 
 [features]
 std = ["alloc", "prse-derive/std"]
