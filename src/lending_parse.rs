@@ -27,6 +27,23 @@ pub trait Parse<'a> {
     /// let c: Count = parse!("I have: {apple: 8}.", "I have: {{{}}}.");
     /// assert_eq!(c, Count("apple", 8));
     /// ```
+    ///
+    /// It also allows you to add your own custom parsing function.
+    ///
+    /// ```
+    /// # use prse::{parse, Parse, ParseError};
+    /// # #[derive(PartialEq, Debug)]
+    /// struct Hex(i32);
+    ///
+    /// impl<'a> Parse<'a> for Hex {
+    ///     fn from_str(s: &'a str) -> Result<Self, ParseError> {
+    ///         Ok(Hex(i32::from_str_radix(s, 16)?)) // Using 16 for Hexadecimal numbers
+    ///     }
+    /// }
+    ///
+    /// let v: Hex = parse!("A", "{}");
+    /// assert_eq!(v, Hex(10));
+    /// ```
     fn from_str(s: &'a str) -> Result<Self, ParseError>
     where
         Self: Sized;

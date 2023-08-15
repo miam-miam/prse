@@ -46,7 +46,9 @@
 //! }
 //! ```
 //!
-//! Additionally you can use the [`Parse`](prse_derive::Parse) derive macro to help you parse custom types.
+//! Additionally you can use the [`Parse`](prse_derive::Parse) derive macro to help you parse
+//! custom types. For even more flexibility you can implement the [`Parse`]
+//! trait yourself for fully custom parsing such as hexadecimal number parsing.
 //!
 //! ```rust
 //! use prse::{parse, Parse};

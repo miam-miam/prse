@@ -53,7 +53,9 @@ let path: Result<PathBuf, _> = try_parse!(input, "cd {}");
 assert_eq!(path.unwrap(), PathBuf::from("C:\\windows\\system32"));
 ```
 
-Additionally you can use the [`Parse`] derive macro to help you parse custom types.
+Additionally you can use the [`Parse`] derive macro to help you parse custom types. 
+For even more flexibility you can implement the [`Parse`](https://docs.rs/prse/latest/prse/trait.Parse.html)
+trait yourself for fully custom parsing such as hexadecimal number parsing.
 ```rust
 use prse::{parse, Parse};
 
