@@ -8,6 +8,13 @@ mod tests {
         t.compile_fail("ui/*.rs");
     }
 
+    #[rustversion::since(1.69)]
+    #[test]
+    fn ui_post_1_69() {
+        let t = trybuild::TestCases::new();
+        t.compile_fail("ui-post-1.69/*.rs")
+    }
+
     #[test]
     fn use_other_strings() {
         let s = String::from("Dashing through the snow.");

@@ -5,6 +5,7 @@ mod tests {
     use prse::{parse, try_parse, ParseError};
 
     #[test]
+    #[ignore]
     fn ui() {
         let t = trybuild::TestCases::new();
         t.compile_fail("ui/*.rs");
