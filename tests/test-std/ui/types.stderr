@@ -4,7 +4,7 @@ error[E0308]: mismatched types
 7 |     parse!(l, "test: {x}");
   |            ^
   |            |
-  |            expected `str`, found integer
+  |            expected `&str`, found `&{integer}`
   |            expected due to this
   |
   = note: expected reference `&str`
@@ -16,7 +16,7 @@ error[E0308]: mismatched types
 8 |     parse!(342, "test: {x}");
   |            ^^^
   |            |
-  |            expected `str`, found integer
+  |            expected `&str`, found `&{integer}`
   |            expected due to this
   |
   = note: expected reference `&str`
@@ -28,7 +28,7 @@ error[E0308]: mismatched types
 9 |     parse!(test(), "test: {x}")
   |            ----^^
   |            |
-  |            expected `str`, found `usize`
+  |            expected `&str`, found `&usize`
   |            expected due to this
   |
   = note: expected reference `&str`
