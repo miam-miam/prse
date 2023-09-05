@@ -11,8 +11,7 @@ impl Derive {
         match self {
             Derive::NoAttributes(g, i) => expand_default(g, i),
             Derive::Struct(mut g, name, f) => {
-                let (impl_generics, ty_generics, where_clause) =
-                    split_for_impl(&mut g, [].into_iter());
+                let (impl_generics, ty_generics, where_clause) = split_for_impl(&mut g, []);
 
                 let tokens = match f {
                     Fields::Named(instructions) => expand_field(instructions, quote!(Self), None),
@@ -30,8 +29,7 @@ impl Derive {
                 }
             }
             Derive::Enum(mut g, name, v) => {
-                let (impl_generics, ty_generics, where_clause) =
-                    split_for_impl(&mut g, [].into_iter());
+                let (impl_generics, ty_generics, where_clause) = split_for_impl(&mut g, []);
 
                 let mut result = None;
 
@@ -159,8 +157,7 @@ fn expand_default(mut generics: Generics, name: Ident) -> TokenStream {
             parse_quote!(
                 <Self as ::core::str::FromStr>::Err: core::convert::Into<::prse::ParseError>
             ),
-        ]
-        .into_iter(),
+        ],
     );
 
     quote! {
@@ -196,7 +193,7 @@ fn split_for_impl(
 
     let predicates = &mut generics.make_where_clause().predicates;
     predicates.extend(extra_predicates);
-    predicates.extend(type_predicates.into_iter());
+    predicates.extend(type_predicates);
 
     let (impl_generics, _, where_clause) = generics.split_for_impl();
     (impl_generics, ty_generics, where_clause)

@@ -201,6 +201,7 @@ fn get_prse_lit(a: &Attribute) -> syn::Result<Option<LitStr>> {
 }
 
 fn no_attributes<'a>(attrs: impl Iterator<Item = &'a Attribute>) -> syn::Result<()> {
+    #[allow(clippy::manual_try_fold)]
     attrs.fold(Ok(()), |i, a| {
         let error = syn::Error::new(a.bracket_token.span.join(), "Unexpected prse attribute.");
         let error = match get_prse_lit(a).map(|a| a.is_some()) {
