@@ -56,8 +56,8 @@ pub fn parse_var(input: String, input_span: Span) -> syn::Result<Instruction> {
                 }
                 let (num, is_multi_sep) = num
                     .strip_prefix('!')
-                    .map(|num| (num, false))
-                    .unwrap_or((num, true));
+                    .map(|num| (num, true))
+                    .unwrap_or((num, false));
                 Ok(if num.trim().is_empty() {
                     if !cfg!(feature = "alloc") {
                         return Err(syn::Error::new(
@@ -128,7 +128,7 @@ mod tests {
             ("{ 0  }", vec![Parse(Position(0))]),
             ("{1} {0}", vec![Parse(Position(1)), Lit(" ".into()), Parse(Position(0))]),
             ("{0} {  hiya }", vec![Parse(Position(0)), Lit(" ".into()), Parse(Ident(syn::Ident::new("hiya", Span::call_site())))]),
-            ("{:-:}", vec![VecParse(Implied, "-".into(), true)]),
+            ("{:-:!}", vec![VecParse(Implied, "-".into(), true)]),
         ];
         for (input, expected) in cases {
             let output = Instructions::new(input, Span::call_site());
