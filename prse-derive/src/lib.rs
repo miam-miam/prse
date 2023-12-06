@@ -84,6 +84,11 @@ mod var;
 /// assert_eq!(animal_count, 79);
 /// ```
 ///
+/// All three multiple parsers (Array, Vec and Iterator) allow "{:sep:!kind}" syntax to skip multiple separators, for example
+/// ```ignore
+/// assert_eq!([1,2,3], parse!("1     2   3", "{: :3}"));
+/// ```
+///
 /// # Syntax
 ///
 /// The [`parse!`] macro uses a literal with `{}` brackets to denote where it should
