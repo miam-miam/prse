@@ -65,10 +65,12 @@ error: Unexpected prse attribute.
    |          ^^^^^^^^^^^^^^^^
 
 error: The derive macro must either have an attribute on each field or none at all.
-  --> ui/derive.rs:71:6
+  --> ui/derive.rs:70:10
    |
-71 | enum L {
-   |      ^
+70 | #[derive(Parse)]
+   |          ^^^^^
+   |
+   = note: this error originates in the derive macro `Parse` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error: Unexpected prse attribute.
   --> ui/derive.rs:83:10
