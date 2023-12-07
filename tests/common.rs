@@ -32,6 +32,7 @@ mod common {
 
     #[derive(Parse, Debug, PartialEq, Eq)]
     enum Capture<'c> {
+        #[prse = "{}"]
         Single(&'c str),
     }
 
