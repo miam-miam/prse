@@ -4,7 +4,6 @@ use syn::{GenericParam, Generics, ImplGenerics, WhereClause, WherePredicate};
 
 use crate::derive::{Derive, Fields};
 use crate::instructions::Instructions;
-use crate::invocation::string_to_tokens;
 
 impl Derive {
     pub fn into_token_stream(self) -> TokenStream {
@@ -131,7 +130,7 @@ fn expand_tuple(
 }
 
 fn expand_unit(s: String, to_return: TokenStream, error: Option<TokenStream>) -> TokenStream {
-    let l_string = string_to_tokens(&s);
+    let l_string = s.to_token_stream();
     let error = error.unwrap_or_else(|| {
         if cfg!(feature = "alloc") {
             quote! {
