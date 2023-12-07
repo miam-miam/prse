@@ -98,14 +98,6 @@ mod tests {
         assert_eq!(num, 7)
     }
 
-    #[test]
-    fn empty_literal() {
-        let input = "";
-        parse!(input, "");
-        let input = "Test";
-        parse!(input, "Test")
-    }
-
     #[derive(Debug, Parse)]
     struct Position {
         x: i32,
@@ -173,4 +165,6 @@ mod tests {
             }
         )
     }
+
+    include!("../common.rs");
 }

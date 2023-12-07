@@ -92,11 +92,5 @@ mod tests {
         assert_eq!(var, "test:")
     }
 
-    #[test]
-    fn empty_literal() {
-        let input = "";
-        parse!(input, "");
-        let input = "Test";
-        parse!(input, "Test")
-    }
+    include!("../common.rs");
 }
