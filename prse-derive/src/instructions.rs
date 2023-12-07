@@ -164,7 +164,7 @@ impl Instructions {
                     }
                 }
                 Instruction::IterParse(..) => quote! {
-                    impl ::core::iter::Iterator<Item = ::core::result::Result<#type_ident, ::prse::ParseError>> + 'a
+                   ::prse::ParseIter<'a, #type_ident>
                 },
                 Instruction::MultiParse(_, _, count, _) => {
                     let count = *count as usize;
@@ -221,76 +221,33 @@ impl Instructions {
                     });
                 }
                 Instruction::VecParse(_, sep, is_multi) => {
-                    let sep = string_to_tokens(sep);
-                    store_token = Some(if *is_multi {
-                        quote! {
-                            let #var = __prse_parse.split(#sep)
-                                .filter(|&p|!p.is_empty())
-                                .map(|p| p.lending_parse())
-                                .collect::<::core::result::Result<::#alloc_crate::vec::Vec<_>, ::prse::ParseError>>()?;
-                        }
-                    } else {
-                        quote! {
-                            let #var = __prse_parse.split(#sep)
-                                .map(|p| p.lending_parse())
-                                .collect::<::core::result::Result<::#alloc_crate::vec::Vec<_>, ::prse::ParseError>>()?;
-                        }
+                    store_token = Some(quote! {
+                        let #var = ::prse::ParseIter::new(__prse_parse, #sep, #is_multi)
+                            .collect::<::core::result::Result<::#alloc_crate::vec::Vec<_>, ::prse::ParseError>>()?;
                     });
                 }
                 Instruction::IterParse(_, sep, is_multi) => {
-                    let sep = string_to_tokens(sep);
-                    store_token = Some(if *is_multi {
-                        quote! {
-                            let #var = __prse_parse.split(#sep)
-                                .filter(|&p|!p.is_empty())
-                                .map(|p| p.lending_parse());
-                        }
-                    } else {
-                        quote! {
-                            let #var = __prse_parse.split(#sep)
-                                .map(|p| p.lending_parse());
-                        }
+                    store_token = Some(quote! {
+                        let #var = ::prse::ParseIter::new(__prse_parse, #sep, #is_multi);
                     });
                 }
                 Instruction::MultiParse(_, sep, count, is_multi) => {
-                    let sep = string_to_tokens(sep);
                     let i = 0..*count;
-                    store_token = Some(if *is_multi {
-                        quote! {
-                            let mut __prse_iter = __prse_parse.split(#sep)
-                                .filter(|p|!p.is_empty())
-                                .map(|p| p.lending_parse());
-                            let #var = [ #(
-                                __prse_iter.next()
-                                .ok_or_else(|| ::prse::ParseError::Multi {
-                                    expected: #count,
-                                    found: #i,
-                                })??
-                            ),* ];
-                            if __prse_iter.next().is_some() {
-                                return Err(::prse::ParseError::Multi {
-                                    expected: #count,
-                                    found: #count + 1,
-                                });
-                            }
-                        }
-                    } else {
-                        quote! {
-                            let mut __prse_iter = __prse_parse.split(#sep)
-                                .map(|p| p.lending_parse());
-                            let #var = [ #(
-                                __prse_iter.next()
-                                .ok_or_else(|| ::prse::ParseError::Multi {
-                                    expected: #count,
-                                    found: #i,
-                                })??
-                            ),* ];
-                            if __prse_iter.next().is_some() {
-                                return Err(::prse::ParseError::Multi {
-                                    expected: #count,
-                                    found: #count + 1,
-                                });
-                            }
+                    store_token = Some(quote! {
+                        let mut __prse_iter = ::prse::ParseIter::new(__prse_parse, #sep, #is_multi);
+                        let #var = [ #(
+                            __prse_iter.next()
+                            .ok_or_else(|| ::prse::ParseError::Multi {
+                                expected: #count,
+                                found: #i,
+                            })??
+                        ),* ];
+                        let __prse_count_left = __prse_iter.count();
+                        if __prse_count_left != 0 {
+                            return Err(::prse::ParseError::Multi {
+                                expected: #count,
+                                found: #count + __prse_count_left as u8,
+                            });
                         }
                     });
                 }

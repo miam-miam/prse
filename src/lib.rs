@@ -140,6 +140,8 @@ pub use crate::lending_parse::Parse as LendingFromStr;
 pub use crate::parse_error::ParseError;
 #[doc(hidden)]
 pub use crate::parse_error::__private;
+pub use crate::parse_iterator::ParseIter;
 
 mod lending_parse;
 mod parse_error;
+mod parse_iterator;
