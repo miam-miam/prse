@@ -29,4 +29,28 @@ mod common {
             parse!("A-B", "{}")
         )
     }
+
+    #[derive(Parse, Debug, PartialEq, Eq)]
+    enum Capture<'c> {
+        #[prse = "{}"]
+        Single(&'c str),
+    }
+
+    #[derive(Parse, Debug, Eq, PartialEq)]
+    #[prse = "{b} {c:-:2}"]
+    struct Lifetimes<'a, 'b> {
+        b: Capture<'a>,
+        c: [&'b str; 2],
+    }
+
+    #[test]
+    fn parse_lifetime_derive() {
+        assert_eq!(
+            Lifetimes {
+                b: Capture::Single("yummy"),
+                c: ["gummy", "bear"]
+            },
+            parse!("yummy gummy-bear", "{}")
+        );
+    }
 }
