@@ -60,7 +60,7 @@ macro_rules! impl_parse {
         $(
             impl<'a> Parse<'a> for $Ty {
                 fn from_str(s: &'a str) -> Result<Self, ParseError> {
-                    <Self as FromStr>::from_str(&s).map_err(|e| e.into())
+                    <Self as FromStr>::from_str(s.trim()).map_err(|e| e.into())
                 }
             }
         )+
