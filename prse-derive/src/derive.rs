@@ -127,7 +127,7 @@ impl Parse for Derive {
         match input.data {
             Data::Struct(s) => {
                 no_attributes(s.fields.iter().flat_map(|f| f.attrs.iter()))?;
-                match attribute_instructions(input.attrs.into_iter())? {
+                match attribute_instruction(input.attrs.into_iter())? {
                     None => Ok(Derive::NoAttributes(input.generics, input.ident)),
                     Some((instructions, span)) => Ok(Derive::Struct(
                         input.generics,
@@ -144,11 +144,11 @@ impl Parse for Derive {
                         .flat_map(|v| v.fields.iter().flat_map(|f| f.attrs.iter())),
                 )?;
 
-                match get_variant_attributes(e.variants.into_iter(), input.ident.span())? {
-                    None => Ok(Derive::NoAttributes(input.generics, input.ident)),
-                    Some(v_instructions) => {
-                        Ok(Derive::Enum(input.generics, input.ident, v_instructions))
-                    }
+                let v_instructions = get_variant_attributes(e.variants.into_iter())?;
+                if v_instructions.is_empty() {
+                    Ok(Derive::NoAttributes(input.generics, input.ident))
+                } else {
+                    Ok(Derive::Enum(input.generics, input.ident, v_instructions))
                 }
             }
             Data::Union(u) => Err(syn::Error::new(
@@ -159,10 +159,10 @@ impl Parse for Derive {
     }
 }
 
-fn attribute_instructions(
+fn attribute_instruction(
     mut attrs: impl Iterator<Item = Attribute>,
 ) -> syn::Result<Option<(Instructions, Span)>> {
-    while let Some(a) = attrs.next() {
+    if let Some(a) = attrs.next() {
         if let Some(lit) = get_prse_lit(&a)? {
             for a in attrs.by_ref() {
                 if get_prse_lit(&a)?.is_some() {
@@ -178,6 +178,20 @@ fn attribute_instructions(
         }
     }
     Ok(None)
+}
+
+fn attribute_instructions(
+    attrs: impl Iterator<Item = Attribute>,
+) -> syn::Result<Vec<(Instructions, Span)>> {
+    let mut res = vec![];
+    for a in attrs {
+        if let Some(lit) = get_prse_lit(&a)? {
+            let span = lit.span();
+            let lit_string = lit.value();
+            res.push((Instructions::new(&lit_string, span)?, span));
+        }
+    }
+    Ok(res)
 }
 
 fn get_prse_lit(a: &Attribute) -> syn::Result<Option<LitStr>> {
@@ -226,41 +240,38 @@ fn no_attributes<'a>(attrs: impl Iterator<Item = &'a Attribute>) -> syn::Result<
 
 fn get_variant_attributes(
     iter: impl Iterator<Item = Variant>,
-    input_span: Span,
-) -> syn::Result<Option<Vec<(Ident, Fields)>>> {
-    iter.map(|v| {
-        (
-            (v.ident, v.fields),
-            attribute_instructions(v.attrs.into_iter()),
-        )
-    })
-    .try_fold(
-        Some(vec![]),
-        |i, ((v_ident, v_fields), instructions)| match i {
-            Some(mut v) if v.is_empty() => match instructions? {
-                None => Ok(None),
-                Some((instr, span)) => {
-                    v.push((v_ident, validate_fields(v_fields, instr, span)?));
-                    Ok(Some(v))
-                }
-            },
-            Some(mut v) => match instructions? {
-                None => Err(syn::Error::new(
-                    input_span,
-                    "The derive macro must either have an attribute on each field or none at all.",
-                )),
-                Some((instr, span)) => {
-                    v.push((v_ident, validate_fields(v_fields, instr, span)?));
-                    Ok(Some(v))
-                }
-            },
-            None => match instructions? {
-                None => Ok(None),
-                Some(_) => Err(syn::Error::new(
-                    input_span,
-                    "The derive macro must either have an attribute on each field or none at all.",
-                )),
-            },
-        },
-    )
+) -> syn::Result<Vec<(Ident, Fields)>> {
+    let attributes = iter
+        .map(|v| {
+            Ok((
+                (v.ident, v.fields),
+                attribute_instructions(v.attrs.into_iter())?,
+            ))
+        })
+        .collect::<syn::Result<Vec<_>>>()?;
+
+    if attributes
+        .iter()
+        .any(|(_, instructions)| instructions.is_empty())
+        && attributes
+            .iter()
+            .any(|(_, instructions)| !instructions.is_empty())
+    {
+        return Err(syn::Error::new(
+            Span::call_site(),
+            "The derive macro must either have an attribute on each field or none at all.",
+        ));
+    }
+
+    attributes
+        .into_iter()
+        .flat_map(|((v_ident, v_fields), instructions)| {
+            instructions.into_iter().map(move |(instr, span)| {
+                Ok((
+                    v_ident.clone(),
+                    validate_fields(v_fields.clone(), instr, span)?,
+                ))
+            })
+        })
+        .collect::<syn::Result<Vec<(Ident, Fields)>>>()
 }

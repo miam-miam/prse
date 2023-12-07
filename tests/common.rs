@@ -61,4 +61,19 @@ mod common {
             parse!(" false , 2 , 3 , 5.0 ", "{},{},{},{}")
         )
     }
+
+    #[derive(Parse, Debug, Eq, PartialEq)]
+    enum Char {
+        #[prse = "a:{}"]
+        #[prse = "A:{}"]
+        A(u32),
+        #[prse = "b"]
+        B,
+    }
+
+    #[test]
+    fn parse_multi_enum() {
+        let l = "a:4 A:3 b";
+        assert_eq!((Char::A(4), Char::A(3), Char::B), parse!(l, "{} {} {}"));
+    }
 }
