@@ -53,4 +53,12 @@ mod common {
             parse!("yummy gummy-bear", "{}")
         );
     }
+
+    #[test]
+    fn parse_trim() {
+        assert_eq!(
+            (false, 2_u8, 3_i32, 5_f64),
+            parse!(" false , 2 , 3 , 5.0 ", "{},{},{},{}")
+        )
+    }
 }
