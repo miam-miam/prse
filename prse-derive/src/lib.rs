@@ -175,21 +175,24 @@ pub fn try_parse(input: TokenStream) -> TokenStream {
 /// #[derive(Debug, Parse, Eq, PartialEq)]
 /// enum Position {
 ///     #[prse = "({x}, {y})"]
-///     Position { x: i32, y: i32 },
+///     Pos { x: i32, y: i32 },
 ///     #[prse = "({})"]
-///     SinglePositon(i32),
+///     SinglePos(i32),
 ///     #[prse = "()"]
-///     NoPosition,
+///     #[prse = ""]
+///     NoPos,
 /// }
 ///
 /// // the first prse attribute to match is used.
 /// let pos0: Position = parse!("This is a position: (1, 2)", "This is a position: {}");
 /// let pos1: Position = parse!("This is a position: (3)", "This is a position: {}");
 /// let pos2: Position = parse!("This is a position: ()", "This is a position: {}");
+/// let pos3: Position = parse!("This is a position: ", "This is a position: {}");
 ///
-/// assert_eq!(pos0, Position::Position { x: 1, y: 2 });
-/// assert_eq!(pos1, Position::SinglePositon(3));
-/// assert_eq!(pos2, Position::NoPosition);
+/// assert_eq!(pos0, Position::Pos { x: 1, y: 2 });
+/// assert_eq!(pos1, Position::SinglePos(3));
+/// assert_eq!(pos2, Position::NoPos);
+/// assert_eq!(pos3, Position::NoPos);
 ///```
 /// If no prse attributes are found, it will use your [`FromStr`](core::str::FromStr) implementation.
 /// ```ignore

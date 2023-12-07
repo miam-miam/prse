@@ -1,10 +1,11 @@
-use proc_macro2::{Ident, TokenStream};
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::ToTokens;
-use syn::{GenericParam, Generics, ImplGenerics, WhereClause, WherePredicate};
+use syn::{
+    GenericParam, Generics, ImplGenerics, Lifetime, LifetimeParam, WhereClause, WherePredicate,
+};
 
 use crate::derive::{Derive, Fields};
 use crate::instructions::Instructions;
-use crate::invocation::string_to_tokens;
 
 impl Derive {
     pub fn into_token_stream(self) -> TokenStream {
@@ -131,7 +132,7 @@ fn expand_tuple(
 }
 
 fn expand_unit(s: String, to_return: TokenStream, error: Option<TokenStream>) -> TokenStream {
-    let l_string = string_to_tokens(&s);
+    let l_string = s.to_token_stream();
     let error = error.unwrap_or_else(|| {
         if cfg!(feature = "alloc") {
             quote! {
@@ -176,7 +177,12 @@ fn split_for_impl(
 ) -> (ImplGenerics, TokenStream, Option<&WhereClause>) {
     let ty_generics = generics.split_for_impl().1.to_token_stream();
 
-    generics.params.push(parse_quote!('__prse_a));
+    generics.params.push(GenericParam::Lifetime(LifetimeParam {
+        attrs: vec![],
+        lifetime: Lifetime::new("'__prse_a", Span::call_site()),
+        colon_token: None,
+        bounds: generics.lifetimes().map(|l| l.lifetime.clone()).collect(),
+    }));
 
     let type_predicates: Vec<WherePredicate> = generics
         .params
