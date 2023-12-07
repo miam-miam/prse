@@ -86,7 +86,7 @@ mod var;
 ///
 /// All three multiple parsers (Array, Vec and Iterator) allow "{:sep:!kind}" syntax to skip multiple separators, for example
 /// ```ignore
-/// assert_eq!([1,2,3], parse!("1     2   3", "{: :3}"));
+/// assert_eq!([1, 2, 3], parse!("1-2---3", "{:-:!3}"));
 /// ```
 ///
 /// # Syntax
