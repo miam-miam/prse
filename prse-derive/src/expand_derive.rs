@@ -72,7 +72,10 @@ fn expand_field(
 
     instructions.gen_return_idents(&mut return_idents, &mut func_idents, &mut renames);
 
-    let mut body = quote!(let mut __prse_parse;);
+    let mut body = quote! {
+        let mut __prse_parse: &str;
+        let mut __prse_remaining = __prse_input;
+    };
 
     instructions.gen_body(&mut body);
 
@@ -82,7 +85,7 @@ fn expand_field(
 
     quote! {
         {
-            use ::prse::{ExtParseStr, Parse};
+            use ::prse::Parse;
 
             #function
 
@@ -109,7 +112,10 @@ fn expand_tuple(
 
     instructions.gen_return_idents(&mut return_idents, &mut func_idents, &mut _renames);
 
-    let mut body = quote!(let mut __prse_parse;);
+    let mut body = quote! {
+        let mut __prse_parse: &str;
+        let mut __prse_remaining = __prse_input;
+    };
 
     instructions.gen_body(&mut body);
 
@@ -117,7 +123,7 @@ fn expand_tuple(
 
     quote! {
         {
-            use ::prse::{ExtParseStr, Parse};
+            use ::prse::Parse;
 
             #function
 

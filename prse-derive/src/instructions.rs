@@ -200,7 +200,7 @@ impl Instructions {
 
         quote! {
             fn #func_name <'a, #(#generics: Parse<'a>),* >(
-                mut __prse_input: &'a str,
+                __prse_input: &'a str,
             ) -> ::core::result::Result<( #(#return_types),* ), ::prse::ParseError> {
                 #body
             }
@@ -223,12 +223,12 @@ impl Instructions {
 
                     result.append_all(if cfg!(feature = "alloc") {
                         quote! {
-                            (__prse_parse, __prse_input) = __prse_input.split_once(#l_string)
-                                .ok_or_else(|| ::prse::ParseError::Literal {expected: (#l_string).into(), found: __prse_input.into()})?;
+                            (__prse_parse, __prse_remaining) = __prse_remaining.split_once(#l_string)
+                                .ok_or_else(|| ::prse::ParseError::Literal {expected: (#l_string).into(), found: __prse_remaining.into()})?;
                         }
                     } else {
                         quote! {
-                            (__prse_parse, __prse_input) = __prse_input.split_once(#l_string)
+                            (__prse_parse, __prse_remaining) = __prse_remaining.split_once(#l_string)
                                 .ok_or_else(|| ::prse::ParseError::Literal)?;
                         }
                     });
@@ -240,7 +240,7 @@ impl Instructions {
                 }
                 Instruction::Parse(_) => {
                     store_token = Some(quote! {
-                        let #var = __prse_parse.lending_parse()?;
+                        let #var = ::prse::__private::try_parse_context(__prse_parse, __prse_input)?;
                     });
                 }
                 Instruction::VecParse(..) => {
@@ -262,14 +262,14 @@ impl Instructions {
                         let mut __prse_iter = #iter;
                         let #var = [ #(
                             __prse_iter.next()
-                            .ok_or_else(|| ::prse::ParseError::Multi {
+                            .ok_or_else(|| ::prse::ParseError::Array {
                                 expected: #count,
                                 found: #idx,
                             })??
                         ),* ];
                         let __prse_count_left = __prse_iter.count();
                         if __prse_count_left != 0 {
-                            return Err(::prse::ParseError::Multi {
+                            return Err(::prse::ParseError::Array {
                                 expected: #count,
                                 found: #count + __prse_count_left as u8,
                             });
@@ -280,17 +280,17 @@ impl Instructions {
         }
         result.append_all(store_token.map_or_else(|| if cfg!(feature = "alloc") {
             quote! {
-                if !__prse_input.is_empty() {
-                    return Err(::prse::ParseError::Literal {expected: "".into(), found: __prse_input.into()})
+                if !__prse_remaining.is_empty() {
+                    return Err(::prse::ParseError::Literal {expected: "".into(), found: __prse_remaining.into()})
                 }
             }
         } else {
             quote! {
-                if !__prse_input.is_empty() {
+                if !__prse_remaining.is_empty() {
                     return Err(::prse::ParseError::Literal)
                 }
             }
-        }, |t| quote! { __prse_parse = __prse_input; #t }));
+        }, |t| quote! { __prse_parse = __prse_remaining; #t }));
 
         let return_idents = self.0.iter().enumerate().filter_map(|(idx, i)| {
             i.get_var()?;

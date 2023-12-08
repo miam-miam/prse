@@ -5,6 +5,8 @@ use core::str::ParseBoolError;
 #[cfg(feature = "alloc")]
 extern crate alloc;
 #[cfg(feature = "alloc")]
+use alloc::boxed::Box;
+#[cfg(feature = "alloc")]
 use alloc::string::String;
 #[cfg(feature = "alloc")]
 use alloc::string::ToString;
@@ -49,7 +51,7 @@ pub enum ParseError {
     #[cfg(not(feature = "alloc"))]
     Literal,
     /// The variant returned when parsing an array and finding more or less elements than what was expected.
-    Multi {
+    Array {
         /// The size of the array it was expecting.
         expected: u8,
         /// The size of the array it found.
@@ -63,6 +65,29 @@ pub enum ParseError {
     /// When not using the `alloc` feature, `Other` is a unit variant.
     #[cfg(not(feature = "alloc"))]
     Other,
+    #[cfg(feature = "alloc")]
+    /// A variant that wraps a [`ParseError`] to add more context about the error
+    /// when parsing repetition sequences.
+    /// This variant is only enabled with the `alloc` feature.
+    MultiContext {
+        /// The string part of the repetition sequence that was trying to be parsed
+        multi_string: String,
+        /// The string that cause the parsing to fail
+        failed_string: String,
+        /// The wrapped error
+        error: Box<ParseError>,
+    },
+    /// A variant that wraps a [`ParseError`] to add more context about the error.
+    /// This variant is only enabled with the `alloc` feature.
+    #[cfg(feature = "alloc")]
+    Context {
+        /// The full string that was trying to be parsed
+        full_string: String,
+        /// The string that cause the parsing to fail
+        failed_item: String,
+        /// The wrapped error
+        error: Box<ParseError>,
+    },
 }
 
 #[cfg(feature = "alloc")]
@@ -108,9 +133,9 @@ impl error::Error for ParseError {
             ParseError::Float(source) => Some(source),
             ParseError::Addr(source) => Some(source),
             ParseError::Dyn(source) => Some(&**source),
-            ParseError::Literal { .. } => None,
-            ParseError::Multi { .. } => None,
-            ParseError::Other(_) => None,
+            ParseError::MultiContext { error, .. } => Some(error),
+            ParseError::Context { error, .. } => Some(error),
+            ParseError::Literal { .. } | ParseError::Array { .. } | ParseError::Other(_) => None,
         }
     }
 }
@@ -133,7 +158,7 @@ impl core::fmt::Display for ParseError {
             ),
             #[cfg(not(feature = "alloc"))]
             ParseError::Literal => write!(fmt, "invalid literal match"),
-            ParseError::Multi { expected, found } => write!(
+            ParseError::Array { expected, found } => write!(
                 fmt,
                 "invalid number of items (expected to find {expected:?}, found {found:?})"
             ),
@@ -141,48 +166,96 @@ impl core::fmt::Display for ParseError {
             ParseError::Other(message) => write!(fmt, "{message}"),
             #[cfg(not(feature = "alloc"))]
             ParseError::Other => write!(fmt, "unable to parse into type"),
+            #[cfg(feature = "alloc")]
+            ParseError::MultiContext {
+                multi_string,
+                failed_string: failed_item,
+                error,
+            } => {
+                write!(
+                    fmt,
+                    "unable to parse multi-item \"{failed_item}\" when parsing \"{multi_string}\":\n\t{error}"
+                )
+            }
+            #[cfg(feature = "alloc")]
+            ParseError::Context {
+                full_string,
+                failed_item,
+                error,
+            } => {
+                write!(
+                    fmt,
+                    "unable to parse \"{failed_item}\" when parsing \"{full_string}\":\n\t{error}"
+                )
+            }
         }
     }
 }
 
 impl PartialEq for ParseError {
     fn eq(&self, other: &Self) -> bool {
-        use ParseError::*;
+        use ParseError as E;
 
         match (self, other) {
-            (Int(x), Int(y)) if x == y => true,
-            (Bool(x), Bool(y)) if x == y => true,
-            (Char(x), Char(y)) if x == y => true,
-            (Float(x), Float(y)) if x == y => true,
+            (E::Int(x), E::Int(y)) => x == y,
+            (E::Bool(x), E::Bool(y)) => x == y,
+            (E::Char(x), E::Char(y)) => x == y,
+            (E::Float(x), E::Float(y)) => x == y,
             #[cfg(feature = "std")]
-            (Addr(x), Addr(y)) if x == y => true,
+            (E::Addr(x), E::Addr(y)) => x == y,
             #[cfg(feature = "alloc")]
             (
-                Literal {
+                E::Literal {
                     expected: lx,
                     found: ly,
                 },
-                Literal {
+                E::Literal {
                     expected: rx,
                     found: ry,
                 },
-            ) if lx == rx && ly == ry => true,
+            ) => lx == rx && ly == ry,
             #[cfg(not(feature = "alloc"))]
-            (Literal, Literal) => true,
+            (E::Literal, E::Literal) => true,
             (
-                Multi {
+                E::Array {
                     expected: lx,
                     found: ly,
                 },
-                Multi {
+                E::Array {
                     expected: rx,
                     found: ry,
                 },
-            ) if lx == rx && ly == ry => true,
+            ) => lx == rx && ly == ry,
             #[cfg(feature = "alloc")]
-            (Other(x), Other(y)) if x == y => true,
+            (E::Other(x), E::Other(y)) => x == y,
             #[cfg(not(feature = "alloc"))]
-            (Other, Other) => true,
+            (E::Other, E::Other) => true,
+            #[cfg(feature = "alloc")]
+            (
+                E::MultiContext {
+                    multi_string: lm,
+                    failed_string: lf,
+                    error: le,
+                },
+                E::MultiContext {
+                    multi_string: rm,
+                    failed_string: rf,
+                    error: re,
+                },
+            ) => lm == rm && lf == rf && le == re,
+            #[cfg(feature = "alloc")]
+            (
+                E::Context {
+                    full_string: ls,
+                    failed_item: lf,
+                    error: le,
+                },
+                E::Context {
+                    full_string: rs,
+                    failed_item: rf,
+                    error: re,
+                },
+            ) => ls == rs && lf == rf && le == re,
             _ => false,
         }
     }
@@ -223,15 +296,63 @@ impl From<()> for ParseError {
 
 #[doc(hidden)]
 pub mod __private {
-    use crate::ParseError;
+    #[cfg(feature = "alloc")]
+    use super::{Box, ToString};
+    use crate::{ExtParseStr, Parse, ParseError};
 
     #[doc(hidden)]
     /// Not part of public api used to unwrap the result when parsing.
-    pub fn unwrap_parse<T>(result: Result<T, ParseError>, input: &str) -> T {
+    pub fn unwrap_parse<T>(result: Result<T, ParseError>) -> T {
         match result {
             Ok(x) => x,
-            Err(e) => panic!("Unable to parse {input:?}: {e:?}"),
+            Err(e) => panic!("Unable to parse input:\n\t{e}"),
         }
+    }
+
+    #[doc(hidden)]
+    #[cfg(not(feature = "alloc"))]
+    pub fn try_parse_context<'a, T: Parse<'a>>(
+        item: &'a str,
+        _full_string: &'a str,
+    ) -> Result<T, ParseError> {
+        item.lending_parse()
+    }
+
+    #[doc(hidden)]
+    #[cfg(not(feature = "alloc"))]
+    pub fn add_err_multi_context<T>(
+        result: Result<T, ParseError>,
+        _input: &str,
+        _failed_item: &str,
+    ) -> Result<T, ParseError> {
+        result
+    }
+
+    #[doc(hidden)]
+    #[cfg(feature = "alloc")]
+    pub fn try_parse_context<'a, T: Parse<'a>>(
+        item: &'a str,
+        full_string: &'a str,
+    ) -> Result<T, ParseError> {
+        item.lending_parse().map_err(|e| ParseError::Context {
+            full_string: full_string.to_string(),
+            failed_item: item.to_string(),
+            error: Box::new(e),
+        })
+    }
+
+    #[doc(hidden)]
+    #[cfg(feature = "alloc")]
+    pub fn add_err_multi_context<T>(
+        result: Result<T, ParseError>,
+        input: &str,
+        failed_item: &str,
+    ) -> Result<T, ParseError> {
+        result.map_err(|e| ParseError::MultiContext {
+            multi_string: input.to_string(),
+            failed_string: failed_item.to_string(),
+            error: Box::new(e),
+        })
     }
 }
 
