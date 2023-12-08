@@ -120,6 +120,16 @@
 //!
 //! assert_eq!(animal_count, 79);
 //! ```
+//!
+//! ## Modifiers
+//!
+//! All three multi-parsers (Array, Vec and Iterator) allow `{<var>:<sep>:!<kind>}` syntax to skip multiple separators, for example
+//! ```
+//! # use prse::parse;
+//! #
+//! assert_eq!([1, 2, 3], parse!("1-2---3", "{:-:!3}"));
+//! ```
+//!
 
 pub use prse_derive::{parse, try_parse, Parse};
 

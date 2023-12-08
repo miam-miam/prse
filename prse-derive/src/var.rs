@@ -129,6 +129,8 @@ mod tests {
             ("{1} {0}", vec![Parse(Position(1)), Lit(" ".into()), Parse(Position(0))]),
             ("{0} {  hiya }", vec![Parse(Position(0)), Lit(" ".into()), Parse(Ident(syn::Ident::new("hiya", Span::call_site())))]),
             ("{:-:!}", vec![VecParse(Implied, "-".into(), true)]),
+            ("{:!:!0}", vec![IterParse(Implied, "!".into(), true)]),
+            ("{:!:!2}", vec![MultiParse(Implied, "!".into(), 2, true)]),
         ];
         for (input, expected) in cases {
             let output = Instructions::new(input, Span::call_site());
