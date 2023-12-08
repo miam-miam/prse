@@ -4,20 +4,38 @@ error: invalid multi parse, it must be of the form <var>:<sep>:<count>.
 6 |     parse!(l, "test: {:}");
   |               ^^^^^^^^^^^
 
-error: expected a number between 0 and 255 but found 999.
+error: skipping separators is not supported with char iterators.
  --> ui/invalid-multi.rs:7:15
   |
-7 |     parse!(l, "test: {:,:999}");
-  |               ^^^^^^^^^^^^^^^^
+7 |     parse!(l, "test: {::!}");
+  |               ^^^^^^^^^^^^^
 
-error: expected a number between 0 and 255 but found -1.
+error: skipping separators is not supported with char iterators.
  --> ui/invalid-multi.rs:8:15
   |
-8 |     parse!(l, "test: {:,:-1}");
-  |               ^^^^^^^^^^^^^^^
+8 |     parse!(l, "test: {::!0}");
+  |               ^^^^^^^^^^^^^^
 
-error: expected a number between 0 and 255 but found ,.
+error: skipping separators is not supported with char iterators.
  --> ui/invalid-multi.rs:9:15
   |
-9 |     parse!(l, "test: {:,:,}");
+9 |     parse!(l, "test: {::!2}");
   |               ^^^^^^^^^^^^^^
+
+error: expected a number between 0 and 255 but found 999.
+  --> ui/invalid-multi.rs:10:15
+   |
+10 |     parse!(l, "test: {:,:999}");
+   |               ^^^^^^^^^^^^^^^^
+
+error: expected a number between 0 and 255 but found -1.
+  --> ui/invalid-multi.rs:11:15
+   |
+11 |     parse!(l, "test: {:,:-1}");
+   |               ^^^^^^^^^^^^^^^
+
+error: expected a number between 0 and 255 but found ,.
+  --> ui/invalid-multi.rs:12:15
+   |
+12 |     parse!(l, "test: {:,:,}");
+   |               ^^^^^^^^^^^^^^

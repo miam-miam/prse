@@ -55,6 +55,14 @@ pub fn parse_var(input: String, input_span: Span) -> syn::Result<Instruction> {
                     .strip_prefix('!')
                     .map(|num| (num, true))
                     .unwrap_or((num, false));
+
+                if sep.is_empty() && is_multi_sep {
+                    return Err(syn::Error::new(
+                        input_span,
+                        "skipping separators is not supported with char iterators.",
+                    ));
+                }
+
                 Ok(if num.trim().is_empty() {
                     if !cfg!(feature = "alloc") {
                         return Err(syn::Error::new(

@@ -106,7 +106,10 @@
 //!
 //! Alternatively if you are unable to allocate anything then you can use a lazy iterator
 //! by using the following syntax `{<var>:<sep>:0}`.
+//!
 //! One important note is that since the iterator is evaluated lazily it will always return an iterator of [`Results`](Result).
+//!
+//! The returned iterator will either be [`ParseIter`](struct.ParseIter.html) or [`ParseChars`](struct.ParseChars.html) if the separator is empty.  
 //!
 //! ```
 //!# use prse::parse;
@@ -128,6 +131,15 @@
 //! # use prse::parse;
 //! #
 //! assert_eq!([1, 2, 3], parse!("1-2---3", "{:-:!3}"));
+//! ```
+//!
+//! ## Empty separators
+//!
+//! If the separator is an empty string slice (e.g. `{::}`) then the multi-parsers will iterate over every [char] in the string.
+//! ```
+//! # use prse::parse;
+//! #
+//! assert_eq!([3, 2, 1], parse!("321", "{::3}"))
 //! ```
 //!
 

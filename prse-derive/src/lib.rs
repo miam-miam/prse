@@ -71,7 +71,11 @@ mod var;
 ///
 /// Alternatively if you are unable to allocate anything then you can use a lazy iterator
 /// by using the following syntax `{<var>:<sep>:0}`.
+///
 /// One important note is that since the iterator is evaluated lazily it will always return an iterator of [`Results`](Result).
+///
+/// The returned iterator will either be [`ParseIter`](struct.ParseIter.html) or [`ParseChars`](struct.ParseChars.html) if the separator is empty.  
+///
 ///
 /// ```ignore
 /// let input = "My farm has this many animals: [5,23,42,1,3,5]";
@@ -91,7 +95,12 @@ mod var;
 /// ```ignore
 /// assert_eq!([1, 2, 3], parse!("1-2---3", "{:-:!3}"));
 /// ```
+/// ## Empty separators
 ///
+/// If the separator is an empty string slice (e.g. `{::}`) then the multi-parsers will iterate over every [char].
+/// ```ignore
+/// assert_eq!([3, 2, 1], parse!("321", "{::3}"))
+/// ```
 /// # Syntax
 ///
 /// The [`parse!`] macro uses a literal with `{}` brackets to denote where it should
@@ -128,8 +137,8 @@ pub fn parse(input: TokenStream) -> TokenStream {
     input.to_token_stream().into()
 }
 
-/// Returns a [`Result`] instead of unwrapping like [`parse!`]. The [`Result`] has
-/// [`ParseError`](enum.ParseError.html) as an error type.
+/// Returns a [`Result`](https://doc.rust-lang.org/stable/std/result/enum.Result.html) instead of unwrapping like [`parse!`]. The [`Result`](https://doc.rust-lang.org/stable/std/result/enum.Result.html) has
+/// [`ParseError`](enum.ParseError.html) as the error type.
 ///
 /// For more information please look at [`parse!`].
 /// ```ignore
@@ -148,7 +157,7 @@ pub fn try_parse(input: TokenStream) -> TokenStream {
 /// Automatically implements the [`Parse`](trait.Parse.html) trait using one of two methods.
 ///
 /// You can define how each field should be parsed using the `prse` attribute.
-/// The prse attribute uses the same syntax as [`parse!`] and even supports Vec and Array repetition.
+/// The prse attribute uses the same syntax as [`parse!`] and even supports Vec, Iterator and Array repetition.
 ///
 ///```ignore
 /// use prse::{parse, Parse};
@@ -160,11 +169,9 @@ pub fn try_parse(input: TokenStream) -> TokenStream {
 ///     y: i32,
 /// }
 ///
-/// fn main() {
-///     let pos: Position = parse!("This is a position: (1, 2)", "This is a position: {}");
-///     assert_eq!(pos.x, 1);
-///     assert_eq!(pos.y, 2);
-/// }
+/// let pos: Position = parse!("This is a position: (1, 2)", "This is a position: {}");
+/// assert_eq!(pos.x, 1);
+/// assert_eq!(pos.y, 2);
 ///```
 ///
 /// This can also be done on enums.

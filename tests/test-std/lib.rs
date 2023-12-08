@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
     use prse::{parse, try_parse, Parse, ParseChars, ParseError};
-    use std::str::CharIndices;
 
     #[test]
     fn ui() {
