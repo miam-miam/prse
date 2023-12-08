@@ -97,16 +97,4 @@ enum O {
     O,
 }
 
-#[derive(Parse)]
-enum P {
-    #[prse = "{:,:0}"]
-    P1(u32),
-}
-
-#[derive(Parse)]
-#[prse = "{x:,:0}"]
-struct Q {
-    x: u32,
-}
-
 fn main() {}

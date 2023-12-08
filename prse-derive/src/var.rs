@@ -51,9 +51,6 @@ pub fn parse_var(input: String, input_span: Span) -> syn::Result<Instruction> {
             let mut var: Var = parse_str(var)?;
             var.add_span(input_span);
             if let Some((sep, num)) = split.rsplit_once(':') {
-                if sep.is_empty() {
-                    return Err(syn::Error::new(input_span, "separator cannot be empty."));
-                }
                 let (num, is_multi_sep) = num
                     .strip_prefix('!')
                     .map(|num| (num, true))
@@ -125,6 +122,7 @@ mod tests {
             ("{::,::85}", vec![MultiParse(Implied, ":,:".into(), 85, false)]),
             ("{::,::0}", vec![IterParse(Implied, ":,:".into(), false)]),
             ("{::,::}", vec![VecParse(Implied, ":,:".into(), false)]),
+            ("{::}", vec![VecParse(Implied, "".into(), false)]),
             ("{ 0  }", vec![Parse(Position(0))]),
             ("{1} {0}", vec![Parse(Position(1)), Lit(" ".into()), Parse(Position(0))]),
             ("{0} {  hiya }", vec![Parse(Position(0)), Lit(" ".into()), Parse(Ident(syn::Ident::new("hiya", Span::call_site())))]),

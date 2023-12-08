@@ -1,5 +1,6 @@
 mod common {
     use prse::{parse, Parse};
+    use prse::{ParseChars, ParseIter};
 
     #[test]
     fn empty_literal() {
@@ -88,5 +89,20 @@ mod common {
         let arr: [u8; 3] = parse!("1-2---3", "{:-:!3}");
         assert_eq!([1, 2, 3], arr);
         assert_eq!(MultiSep { arr: [23, 1] }, parse!(":::23::::1", "{}"))
+    }
+
+    #[derive(Parse)]
+    #[prse = "({a:,:!0};{b::0})"]
+    struct TwoIters<'a> {
+        a: ParseIter<'a, u32>,
+        b: ParseChars<'a, u32>,
+    }
+
+    #[test]
+    fn parse_iter_struct() {
+        let l = "(2,,,42, 2, 2;12426)";
+        let x: TwoIters = parse!(l, "{}");
+        assert_eq!(48, x.a.map(|x| x.unwrap()).sum::<u32>());
+        assert_eq!(15, x.b.map(|x| x.unwrap()).sum::<u32>());
     }
 }

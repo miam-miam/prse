@@ -89,15 +89,3 @@ error: prse attribute must be of the form #[prse = "parse_string"]
    |
 96 |     #[prse]
    |      ^^^^^^
-
-error: Iterator parsing is not supported as the iterator is an opaque type.
-   --> ui/derive.rs:102:14
-    |
-102 |     #[prse = "{:,:0}"]
-    |              ^^^^^^^^
-
-error: Iterator parsing is not supported as the iterator is an opaque type.
-   --> ui/derive.rs:107:10
-    |
-107 | #[prse = "{x:,:0}"]
-    |          ^^^^^^^^^
