@@ -8,6 +8,7 @@ members = [
 name = "prse"
 version = "1.0.3"
 edition = "2021"
+rust-version = "1.61.0"
 authors = ["miam-miam100 <MiamMiam@mailbox.org>"]
 documentation = "https://docs.rs/prse/"
 license = "MIT OR Apache-2.0"
