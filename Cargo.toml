@@ -8,6 +8,7 @@ members = [
 name = "prse"
 version = "1.0.3"
 edition = "2021"
+rust-version = "1.61.0"
 authors = ["miam-miam100 <MiamMiam@mailbox.org>"]
 documentation = "https://docs.rs/prse/"
 license = "MIT OR Apache-2.0"
@@ -22,8 +23,9 @@ exclude = [".github", "examples"]
 
 [dependencies]
 prse-derive = { version = "1.0.3", path="prse-derive", default-features = false }
+memchr = { version = "2.6.4", default-features = false }
 
 [features]
-std = ["alloc", "prse-derive/std"]
+std = ["alloc", "prse-derive/std", "memchr/std"]
 alloc = ["prse-derive/alloc"]
 default = ["std"]

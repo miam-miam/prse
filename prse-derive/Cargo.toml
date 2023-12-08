@@ -10,7 +10,7 @@ readme = "../README.md"
 description = "A helper macro crate for the prse crate."
 keywords = ["string", "parsing", "format-args", "no-std"]
 categories = ["parsing"]
-rust-version = "1.59"
+rust-version = "1.61.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]

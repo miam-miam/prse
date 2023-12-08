@@ -4,7 +4,9 @@ fn main() {
     let l = "test: 5";
 
     parse!(l, "test: {:}");
-    parse!(l, "test: {::}");
+    parse!(l, "test: {::!}");
+    parse!(l, "test: {::!0}");
+    parse!(l, "test: {::!2}");
     parse!(l, "test: {:,:999}");
     parse!(l, "test: {:,:-1}");
     parse!(l, "test: {:,:,}");

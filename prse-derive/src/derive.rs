@@ -46,12 +46,6 @@ fn validate_fields(
                 .collect();
             let mut seen_idents = HashSet::new();
             for i in instructions.0.iter() {
-                if let Instruction::IterParse(..) = i {
-                    return Err(syn::Error::new(
-                        span,
-                        "Iterator parsing is not supported as the iterator is an opaque type.",
-                    ));
-                }
                 match i.get_var() {
                     None => {}
                     Some(Var::Ident(ident)) => {
@@ -84,12 +78,6 @@ fn validate_fields(
             let max = fields.unnamed.iter().count() - 1;
             let mut count = 0;
             for i in instructions.0.iter() {
-                if let Instruction::IterParse(..) = i {
-                    return Err(syn::Error::new(
-                        span,
-                        "Iterator parsing is not supported as the iterator is an opaque type.",
-                    ));
-                }
                 match i.get_var() {
                     Some(Var::Ident(ident)) => {
                         return Err(syn::Error::new(

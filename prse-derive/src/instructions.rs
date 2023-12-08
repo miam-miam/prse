@@ -25,6 +25,26 @@ impl Instruction {
             | Instruction::MultiParse(v, ..) => Some(v),
         }
     }
+
+    pub(crate) fn gen_iter(&self) -> Option<TokenStream> {
+        match self {
+            Instruction::VecParse(_, sep, _)
+            | Instruction::IterParse(_, sep, _)
+            | Instruction::MultiParse(_, sep, ..)
+                if sep.is_empty() =>
+            {
+                Some(quote! {
+                    ::prse::ParseChars::new(__prse_parse)
+                })
+            }
+            Instruction::VecParse(_, sep, is_multi)
+            | Instruction::IterParse(_, sep, is_multi)
+            | Instruction::MultiParse(_, sep, _, is_multi) => Some(quote! {
+                ::prse::ParseIter::new(__prse_parse, #sep, #is_multi)
+            }),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Debug, Clone)]
@@ -163,8 +183,11 @@ impl Instructions {
                         quote!(::alloc::vec::Vec<#type_ident>)
                     }
                 }
+                Instruction::IterParse(_, sep, _) if sep.is_empty() => quote! {
+                   ::prse::ParseChars<'a, #type_ident>
+                },
                 Instruction::IterParse(..) => quote! {
-                    impl ::core::iter::Iterator<Item = ::core::result::Result<#type_ident, ::prse::ParseError>> + 'a
+                   ::prse::ParseIter<'a, #type_ident>
                 },
                 Instruction::MultiParse(_, _, count, _) => {
                     let count = *count as usize;
@@ -220,77 +243,36 @@ impl Instructions {
                         let #var = __prse_parse.lending_parse()?;
                     });
                 }
-                Instruction::VecParse(_, sep, is_multi) => {
-                    let sep = string_to_tokens(sep);
-                    store_token = Some(if *is_multi {
-                        quote! {
-                            let #var = __prse_parse.split(#sep)
-                                .filter(|&p|!p.is_empty())
-                                .map(|p| p.lending_parse())
-                                .collect::<::core::result::Result<::#alloc_crate::vec::Vec<_>, ::prse::ParseError>>()?;
-                        }
-                    } else {
-                        quote! {
-                            let #var = __prse_parse.split(#sep)
-                                .map(|p| p.lending_parse())
-                                .collect::<::core::result::Result<::#alloc_crate::vec::Vec<_>, ::prse::ParseError>>()?;
-                        }
+                Instruction::VecParse(..) => {
+                    let iter = i.gen_iter().unwrap();
+                    store_token = Some(quote! {
+                        let #var = #iter.collect::<::core::result::Result<::#alloc_crate::vec::Vec<_>, ::prse::ParseError>>()?;
                     });
                 }
-                Instruction::IterParse(_, sep, is_multi) => {
-                    let sep = string_to_tokens(sep);
-                    store_token = Some(if *is_multi {
-                        quote! {
-                            let #var = __prse_parse.split(#sep)
-                                .filter(|&p|!p.is_empty())
-                                .map(|p| p.lending_parse());
-                        }
-                    } else {
-                        quote! {
-                            let #var = __prse_parse.split(#sep)
-                                .map(|p| p.lending_parse());
-                        }
+                Instruction::IterParse(..) => {
+                    let iter = i.gen_iter().unwrap();
+                    store_token = Some(quote! {
+                        let #var = #iter;
                     });
                 }
-                Instruction::MultiParse(_, sep, count, is_multi) => {
-                    let sep = string_to_tokens(sep);
-                    let i = 0..*count;
-                    store_token = Some(if *is_multi {
-                        quote! {
-                            let mut __prse_iter = __prse_parse.split(#sep)
-                                .filter(|p|!p.is_empty())
-                                .map(|p| p.lending_parse());
-                            let #var = [ #(
-                                __prse_iter.next()
-                                .ok_or_else(|| ::prse::ParseError::Multi {
-                                    expected: #count,
-                                    found: #i,
-                                })??
-                            ),* ];
-                            if __prse_iter.next().is_some() {
-                                return Err(::prse::ParseError::Multi {
-                                    expected: #count,
-                                    found: #count + 1,
-                                });
-                            }
-                        }
-                    } else {
-                        quote! {
-                            let mut __prse_iter = __prse_parse.split(#sep)
-                                .map(|p| p.lending_parse());
-                            let #var = [ #(
-                                __prse_iter.next()
-                                .ok_or_else(|| ::prse::ParseError::Multi {
-                                    expected: #count,
-                                    found: #i,
-                                })??
-                            ),* ];
-                            if __prse_iter.next().is_some() {
-                                return Err(::prse::ParseError::Multi {
-                                    expected: #count,
-                                    found: #count + 1,
-                                });
-                            }
+                Instruction::MultiParse(_, _, count, _) => {
+                    let idx = 0..*count;
+                    let iter = i.gen_iter().unwrap();
+                    store_token = Some(quote! {
+                        let mut __prse_iter = #iter;
+                        let #var = [ #(
+                            __prse_iter.next()
+                            .ok_or_else(|| ::prse::ParseError::Multi {
+                                expected: #count,
+                                found: #idx,
+                            })??
+                        ),* ];
+                        let __prse_count_left = __prse_iter.count();
+                        if __prse_count_left != 0 {
+                            return Err(::prse::ParseError::Multi {
+                                expected: #count,
+                                found: #count + __prse_count_left as u8,
+                            });
                         }
                     });
                 }

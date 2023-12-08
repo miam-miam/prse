@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use prse::{parse, try_parse, Parse, ParseError};
+    use prse::{parse, try_parse, Parse, ParseChars, ParseError};
 
     #[test]
     fn ui() {
@@ -164,6 +164,23 @@ mod tests {
                 y: [9, 8, 7]
             }
         )
+    }
+
+    #[test]
+    fn parse_iter_chars() {
+        let arr: [u8; 6] = parse!("Char: (123456)", "Char: ({::6})");
+        assert_eq!(arr, [1, 2, 3, 4, 5, 6]);
+        let vec: Vec<u8> = parse!("523", "{::}");
+        assert_eq!(vec![5u8, 2, 3], vec);
+        let mut iter: ParseChars<char> = parse!("@€⛺🤓🤓⛺€@", "{::0}");
+        assert_eq!(Some(Ok('@')), iter.next());
+        assert_eq!(Some(Ok('€')), iter.next());
+        assert_eq!(Some(Ok('⛺')), iter.next());
+        assert_eq!(Some(Ok('🤓')), iter.next());
+        assert_eq!(Some(Ok('🤓')), iter.next());
+        assert_eq!(Some(Ok('⛺')), iter.next());
+        assert_eq!(Some(Ok('€')), iter.next());
+        assert_eq!(Some(Ok('@')), iter.next());
     }
 
     include!("../common.rs");
