@@ -1,6 +1,6 @@
 [package]
 name = "prse-derive"
-version = "1.0.3"
+version = "1.1.0"
 edition = "2021"
 authors = ["miam-miam100 <MiamMiam@mailbox.org>"]
 documentation = "https://docs.rs/prse/"
