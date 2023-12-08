@@ -54,6 +54,10 @@ pub fn parse_var(input: String, input_span: Span) -> syn::Result<Instruction> {
                 if sep.is_empty() {
                     return Err(syn::Error::new(input_span, "separator cannot be empty."));
                 }
+                let (num, is_multi_sep) = num
+                    .strip_prefix('!')
+                    .map(|num| (num, true))
+                    .unwrap_or((num, false));
                 Ok(if num.trim().is_empty() {
                     if !cfg!(feature = "alloc") {
                         return Err(syn::Error::new(
@@ -61,11 +65,11 @@ pub fn parse_var(input: String, input_span: Span) -> syn::Result<Instruction> {
                             "alloc feature is required to parse into a Vec.",
                         ));
                     }
-                    Instruction::VecParse(var, String::from(sep))
+                    Instruction::VecParse(var, String::from(sep), is_multi_sep)
                 } else {
                     match num.parse() {
-                        Ok(0_u8) => Instruction::IterParse(var, String::from(sep)),
-                        Ok(x) => Instruction::MultiParse(var, String::from(sep), x),
+                        Ok(0_u8) => Instruction::IterParse(var, String::from(sep), is_multi_sep),
+                        Ok(x) => Instruction::MultiParse(var, String::from(sep), x, is_multi_sep),
                         Err(_) => {
                             return Err(syn::Error::new(
                                 input_span,
@@ -108,22 +112,25 @@ mod tests {
             ("{}{{{}}}{}", vec![Parse(Implied), Lit("{".into()), Parse(Implied), Lit("}".into()), Parse(Implied)]),
             (" {}{{:}}}}{} ", vec![Lit(" ".into()), Parse(Implied), Lit("{:}}".into()), Parse(Implied), Lit(" ".into())]),
             (" {} {}}}{}", vec![Lit(" ".into()), Parse(Implied), Lit(" ".into()), Parse(Implied), Lit("}".into()), Parse(Implied)]),
-            ("{:}}:}", vec![VecParse(Implied, "}".into())]),
-            ("{:{{}}:}", vec![VecParse(Implied, "{}".into())]),
-            ("{:{{}}: }", vec![VecParse(Implied, "{}".into())]),
+            ("{:}}:}", vec![VecParse(Implied, "}".into(), false)]),
+            ("{:{{}}:}", vec![VecParse(Implied, "{}".into(), false)]),
+            ("{:{{}}: }", vec![VecParse(Implied, "{}".into(), false)]),
             ("{hello}", vec![Parse(Ident(syn::Ident::new("hello", Span::call_site())))]),
-            ("{:,:5}", vec![MultiParse(Implied, ",".into(), 5)]),
-            ("{:,:0}", vec![IterParse(Implied, ",".into())]),
-            ("{:,:}", vec![VecParse(Implied, ",".into())]),
-            ("{:,::1}", vec![MultiParse(Implied, ",:".into(), 1)]),
-            ("{:,::0}", vec![IterParse(Implied, ",:".into())]),
-            ("{:,::}", vec![VecParse(Implied, ",:".into())]),
-            ("{::,::85}", vec![MultiParse(Implied, ":,:".into(), 85)]),
-            ("{::,::0}", vec![IterParse(Implied, ":,:".into())]),
-            ("{::,::}", vec![VecParse(Implied, ":,:".into())]),
+            ("{:,:5}", vec![MultiParse(Implied, ",".into(), 5, false)]),
+            ("{:,:0}", vec![IterParse(Implied, ",".into(), false)]),
+            ("{:,:}", vec![VecParse(Implied, ",".into(), false)]),
+            ("{:,::1}", vec![MultiParse(Implied, ",:".into(), 1, false)]),
+            ("{:,::0}", vec![IterParse(Implied, ",:".into(), false)]),
+            ("{:,::}", vec![VecParse(Implied, ",:".into(), false)]),
+            ("{::,::85}", vec![MultiParse(Implied, ":,:".into(), 85, false)]),
+            ("{::,::0}", vec![IterParse(Implied, ":,:".into(), false)]),
+            ("{::,::}", vec![VecParse(Implied, ":,:".into(), false)]),
             ("{ 0  }", vec![Parse(Position(0))]),
             ("{1} {0}", vec![Parse(Position(1)), Lit(" ".into()), Parse(Position(0))]),
             ("{0} {  hiya }", vec![Parse(Position(0)), Lit(" ".into()), Parse(Ident(syn::Ident::new("hiya", Span::call_site())))]),
+            ("{:-:!}", vec![VecParse(Implied, "-".into(), true)]),
+            ("{:!:!0}", vec![IterParse(Implied, "!".into(), true)]),
+            ("{:!:!2}", vec![MultiParse(Implied, "!".into(), 2, true)]),
         ];
         for (input, expected) in cases {
             let output = Instructions::new(input, Span::call_site());

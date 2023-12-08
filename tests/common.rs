@@ -76,4 +76,17 @@ mod common {
         let l = "a:4 A:3 b";
         assert_eq!((Char::A(4), Char::A(3), Char::B), parse!(l, "{} {} {}"));
     }
+
+    #[derive(Parse, Eq, PartialEq, Debug)]
+    #[prse = "{arr:::!2}"]
+    struct MultiSep {
+        arr: [u32; 2],
+    }
+
+    #[test]
+    fn parse_multi_sep() {
+        let arr: [u8; 3] = parse!("1-2---3", "{:-:!3}");
+        assert_eq!([1, 2, 3], arr);
+        assert_eq!(MultiSep { arr: [23, 1] }, parse!(":::23::::1", "{}"))
+    }
 }
