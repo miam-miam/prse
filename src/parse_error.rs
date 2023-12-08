@@ -5,13 +5,14 @@ use core::str::ParseBoolError;
 #[cfg(feature = "alloc")]
 extern crate alloc;
 #[cfg(feature = "alloc")]
+use alloc::boxed::Box;
+#[cfg(feature = "alloc")]
 use alloc::string::String;
 #[cfg(feature = "alloc")]
 use alloc::string::ToString;
 
 #[cfg(feature = "std")]
 use std::error;
-use std::fmt::write;
 #[cfg(feature = "std")]
 use std::net::AddrParseError;
 
@@ -65,15 +66,26 @@ pub enum ParseError {
     #[cfg(not(feature = "alloc"))]
     Other,
     #[cfg(feature = "alloc")]
+    /// A variant that wraps a [`ParseError`] to add more context about the error
+    /// when parsing repetition sequences.
+    /// This variant is only enabled with the `alloc` feature.
     MultiContext {
+        /// The string part of the repetition sequence that was trying to be parsed
         multi_string: String,
-        failed_item: String,
+        /// The string that cause the parsing to fail
+        failed_string: String,
+        /// The wrapped error
         error: Box<ParseError>,
     },
+    /// A variant that wraps a [`ParseError`] to add more context about the error.
+    /// This variant is only enabled with the `alloc` feature.
     #[cfg(feature = "alloc")]
     Context {
+        /// The full string that was trying to be parsed
         full_string: String,
+        /// The string that cause the parsing to fail
         failed_item: String,
+        /// The wrapped error
         error: Box<ParseError>,
     },
 }
@@ -157,12 +169,12 @@ impl core::fmt::Display for ParseError {
             #[cfg(feature = "alloc")]
             ParseError::MultiContext {
                 multi_string,
-                failed_item,
+                failed_string: failed_item,
                 error,
             } => {
                 write!(
                     fmt,
-                    "unable to parse multi-item {failed_item} when parsing {multi_string}:\n\t{error}"
+                    "unable to parse multi-item \"{failed_item}\" when parsing \"{multi_string}\":\n\t{error}"
                 )
             }
             #[cfg(feature = "alloc")]
@@ -173,7 +185,7 @@ impl core::fmt::Display for ParseError {
             } => {
                 write!(
                     fmt,
-                    "unable to parse {failed_item} when parsing {full_string}:\n\t{error}"
+                    "unable to parse \"{failed_item}\" when parsing \"{full_string}\":\n\t{error}"
                 )
             }
         }
@@ -203,7 +215,7 @@ impl PartialEq for ParseError {
                 },
             ) => lx == rx && ly == ry,
             #[cfg(not(feature = "alloc"))]
-            (Literal, Literal) => true,
+            (E::Literal, E::Literal) => true,
             (
                 E::Array {
                     expected: lx,
@@ -216,16 +228,18 @@ impl PartialEq for ParseError {
             ) => lx == rx && ly == ry,
             #[cfg(feature = "alloc")]
             (E::Other(x), E::Other(y)) => x == y,
+            #[cfg(not(feature = "alloc"))]
+            (E::Other, E::Other) => true,
             #[cfg(feature = "alloc")]
             (
                 E::MultiContext {
                     multi_string: lm,
-                    failed_item: lf,
+                    failed_string: lf,
                     error: le,
                 },
                 E::MultiContext {
                     multi_string: rm,
-                    failed_item: rf,
+                    failed_string: rf,
                     error: re,
                 },
             ) => lm == rm && lf == rf && le == re,
@@ -242,8 +256,6 @@ impl PartialEq for ParseError {
                     error: re,
                 },
             ) => ls == rs && lf == rf && le == re,
-            #[cfg(not(feature = "alloc"))]
-            (Other, Other) => true,
             _ => false,
         }
     }
@@ -284,15 +296,63 @@ impl From<()> for ParseError {
 
 #[doc(hidden)]
 pub mod __private {
-    use crate::ParseError;
+    #[cfg(feature = "alloc")]
+    use super::{Box, ToString};
+    use crate::{ExtParseStr, Parse, ParseError};
 
     #[doc(hidden)]
     /// Not part of public api used to unwrap the result when parsing.
-    pub fn unwrap_parse<T>(result: Result<T, ParseError>, input: &str) -> T {
+    pub fn unwrap_parse<T>(result: Result<T, ParseError>) -> T {
         match result {
             Ok(x) => x,
-            Err(e) => panic!("Unable to parse {input:?}: {e:?}"),
+            Err(e) => panic!("Unable to parse input:\n\t{e}"),
         }
+    }
+
+    #[doc(hidden)]
+    #[cfg(not(feature = "alloc"))]
+    pub fn try_parse_context<'a, T: Parse<'a>>(
+        item: &'a str,
+        _full_string: &'a str,
+    ) -> Result<T, ParseError> {
+        item.lending_parse()
+    }
+
+    #[doc(hidden)]
+    #[cfg(not(feature = "alloc"))]
+    pub fn add_err_multi_context<T>(
+        result: Result<T, ParseError>,
+        _input: &str,
+        _failed_item: &str,
+    ) -> Result<T, ParseError> {
+        result
+    }
+
+    #[doc(hidden)]
+    #[cfg(feature = "alloc")]
+    pub fn try_parse_context<'a, T: Parse<'a>>(
+        item: &'a str,
+        full_string: &'a str,
+    ) -> Result<T, ParseError> {
+        item.lending_parse().map_err(|e| ParseError::Context {
+            full_string: full_string.to_string(),
+            failed_item: item.to_string(),
+            error: Box::new(e),
+        })
+    }
+
+    #[doc(hidden)]
+    #[cfg(feature = "alloc")]
+    pub fn add_err_multi_context<T>(
+        result: Result<T, ParseError>,
+        input: &str,
+        failed_item: &str,
+    ) -> Result<T, ParseError> {
+        result.map_err(|e| ParseError::MultiContext {
+            multi_string: input.to_string(),
+            failed_string: failed_item.to_string(),
+            error: Box::new(e),
+        })
     }
 }
 

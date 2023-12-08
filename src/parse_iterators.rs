@@ -1,4 +1,4 @@
-use crate::{Parse, ParseError};
+use crate::{Parse, ParseError, __private};
 use core::iter::FusedIterator;
 use core::marker::PhantomData;
 use core::str::CharIndices;
@@ -57,14 +57,22 @@ impl<'a, T: Parse<'a>> Iterator for ParseIter<'a, T> {
             if let Some(slice) = self.string.get(self.last_match_idx..idx) {
                 self.last_match_idx = idx + self.separator_size;
                 if !self.is_multi || !slice.is_empty() {
-                    return Some(T::from_str(slice));
+                    return Some(__private::add_err_multi_context(
+                        T::from_str(slice),
+                        self.string,
+                        slice,
+                    ));
                 }
             }
         }
         if let Some(slice) = self.string.get(self.last_match_idx..) {
             self.last_match_idx = self.string.len() + 1;
             if !slice.is_empty() {
-                return Some(T::from_str(slice));
+                return Some(__private::add_err_multi_context(
+                    T::from_str(slice),
+                    self.string,
+                    slice,
+                ));
             }
         }
         None
@@ -134,7 +142,7 @@ impl<'a, T: Parse<'a>> Iterator for ParseChars<'a, T> {
     fn next(&mut self) -> Option<Self::Item> {
         self.chars.next().map(|(start, c)| {
             let slice = self.string.get(start..(start + c.len_utf8())).unwrap();
-            T::from_str(slice)
+            __private::add_err_multi_context(T::from_str(slice), self.string, slice)
         })
     }
 
@@ -155,7 +163,7 @@ impl<'a, T: Parse<'a>> DoubleEndedIterator for ParseChars<'a, T> {
     fn next_back(&mut self) -> Option<Result<T, ParseError>> {
         self.chars.next_back().map(|(start, c)| {
             let slice = self.string.get(start..(start + c.len_utf8())).unwrap();
-            T::from_str(slice)
+            __private::add_err_multi_context(T::from_str(slice), self.string, slice)
         })
     }
 }

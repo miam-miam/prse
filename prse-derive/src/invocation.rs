@@ -44,7 +44,10 @@ impl ToTokens for ParseInvocation {
 
         let renames: TokenStream = renames.iter().flat_map(|(l, r)| quote!(#l = #r;)).collect();
 
-        let mut body = quote!(let mut __prse_parse: &str;);
+        let mut body = quote! {
+            let mut __prse_parse: &str;
+            let mut __prse_remaining = __prse_input;
+        };
 
         self.instructions.gen_body(&mut body);
 
@@ -52,7 +55,7 @@ impl ToTokens for ParseInvocation {
 
         let mut result = quote_spanned! { input.span() =>
             #[allow(clippy::needless_borrow)]
-            let mut __prse_input: &str = &#input;
+            let __prse_input: &str = &#input;
         };
 
         result.append_all(if self.try_parse {
@@ -67,7 +70,7 @@ impl ToTokens for ParseInvocation {
             }
         } else {
             quote! {
-                let ( #(#func_idents),* ) = ::prse::__private::unwrap_parse( #func_name (__prse_input), __prse_input);
+                let ( #(#func_idents),* ) = ::prse::__private::unwrap_parse(#func_name (__prse_input));
                 #renames
                 #[allow(clippy::unused_unit)]
                 {
@@ -78,7 +81,7 @@ impl ToTokens for ParseInvocation {
 
         tokens.append_all(quote! {
             {
-                use ::prse::{ExtParseStr, Parse};
+                use ::prse::Parse;
 
                 #function
 
