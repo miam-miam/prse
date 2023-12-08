@@ -5,7 +5,7 @@ use crate::parse_error::ParseError;
 
 /// Parse a string into the implemented type, unlike [`FromStr`] this trait allows
 /// you to borrow the string. It can be automatically derived using
-/// [`Parse`](prse_derive::Parse) and was previously called `LendingFromStr`.
+/// [`Parse`](prse_derive::Parse).
 pub trait Parse<'a> {
     /// Parses a string `s` to a return value of this type.
     ///
