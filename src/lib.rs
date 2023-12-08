@@ -147,8 +147,6 @@ pub use prse_derive::{parse, try_parse, Parse};
 
 #[rustfmt::skip]
 pub use crate::lending_parse::{ExtParseStr, Parse};
-/// <b> Deprecated please use [`Parse`](crate::lending_parse::Parse) instead. </b>
-pub use crate::lending_parse::Parse as LendingFromStr;
 pub use crate::parse_error::ParseError;
 #[doc(hidden)]
 pub use crate::parse_error::__private;
