@@ -73,7 +73,7 @@ mod tests {
         let case: Result<[&str; 2], _> = try_parse!(l, "I love the following: {:, :2}.");
         assert_eq!(
             case,
-            Err(ParseError::Multi {
+            Err(ParseError::Array {
                 expected: 2,
                 found: 3
             })
@@ -81,7 +81,7 @@ mod tests {
         let case: Result<[&str; 4], _> = try_parse!(l, "I love the following: {:, :4}.");
         assert_eq!(
             case,
-            Err(ParseError::Multi {
+            Err(ParseError::Array {
                 expected: 4,
                 found: 3
             })

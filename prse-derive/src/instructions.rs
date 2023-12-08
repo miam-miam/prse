@@ -262,14 +262,14 @@ impl Instructions {
                         let mut __prse_iter = #iter;
                         let #var = [ #(
                             __prse_iter.next()
-                            .ok_or_else(|| ::prse::ParseError::Multi {
+                            .ok_or_else(|| ::prse::ParseError::Array {
                                 expected: #count,
                                 found: #idx,
                             })??
                         ),* ];
                         let __prse_count_left = __prse_iter.count();
                         if __prse_count_left != 0 {
-                            return Err(::prse::ParseError::Multi {
+                            return Err(::prse::ParseError::Array {
                                 expected: #count,
                                 found: #count + __prse_count_left as u8,
                             });

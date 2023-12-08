@@ -11,6 +11,7 @@ use alloc::string::ToString;
 
 #[cfg(feature = "std")]
 use std::error;
+use std::fmt::write;
 #[cfg(feature = "std")]
 use std::net::AddrParseError;
 
@@ -49,7 +50,7 @@ pub enum ParseError {
     #[cfg(not(feature = "alloc"))]
     Literal,
     /// The variant returned when parsing an array and finding more or less elements than what was expected.
-    Multi {
+    Array {
         /// The size of the array it was expecting.
         expected: u8,
         /// The size of the array it found.
@@ -63,6 +64,18 @@ pub enum ParseError {
     /// When not using the `alloc` feature, `Other` is a unit variant.
     #[cfg(not(feature = "alloc"))]
     Other,
+    #[cfg(feature = "alloc")]
+    MultiContext {
+        multi_string: String,
+        failed_item: String,
+        error: Box<ParseError>,
+    },
+    #[cfg(feature = "alloc")]
+    Context {
+        full_string: String,
+        failed_item: String,
+        error: Box<ParseError>,
+    },
 }
 
 #[cfg(feature = "alloc")]
@@ -108,9 +121,9 @@ impl error::Error for ParseError {
             ParseError::Float(source) => Some(source),
             ParseError::Addr(source) => Some(source),
             ParseError::Dyn(source) => Some(&**source),
-            ParseError::Literal { .. } => None,
-            ParseError::Multi { .. } => None,
-            ParseError::Other(_) => None,
+            ParseError::MultiContext { error, .. } => Some(error),
+            ParseError::Context { error, .. } => Some(error),
+            ParseError::Literal { .. } | ParseError::Array { .. } | ParseError::Other(_) => None,
         }
     }
 }
@@ -133,7 +146,7 @@ impl core::fmt::Display for ParseError {
             ),
             #[cfg(not(feature = "alloc"))]
             ParseError::Literal => write!(fmt, "invalid literal match"),
-            ParseError::Multi { expected, found } => write!(
+            ParseError::Array { expected, found } => write!(
                 fmt,
                 "invalid number of items (expected to find {expected:?}, found {found:?})"
             ),
@@ -141,46 +154,94 @@ impl core::fmt::Display for ParseError {
             ParseError::Other(message) => write!(fmt, "{message}"),
             #[cfg(not(feature = "alloc"))]
             ParseError::Other => write!(fmt, "unable to parse into type"),
+            #[cfg(feature = "alloc")]
+            ParseError::MultiContext {
+                multi_string,
+                failed_item,
+                error,
+            } => {
+                write!(
+                    fmt,
+                    "unable to parse multi-item {failed_item} when parsing {multi_string}:\n\t{error}"
+                )
+            }
+            #[cfg(feature = "alloc")]
+            ParseError::Context {
+                full_string,
+                failed_item,
+                error,
+            } => {
+                write!(
+                    fmt,
+                    "unable to parse {failed_item} when parsing {full_string}:\n\t{error}"
+                )
+            }
         }
     }
 }
 
 impl PartialEq for ParseError {
     fn eq(&self, other: &Self) -> bool {
-        use ParseError::*;
+        use ParseError as E;
 
         match (self, other) {
-            (Int(x), Int(y)) if x == y => true,
-            (Bool(x), Bool(y)) if x == y => true,
-            (Char(x), Char(y)) if x == y => true,
-            (Float(x), Float(y)) if x == y => true,
+            (E::Int(x), E::Int(y)) => x == y,
+            (E::Bool(x), E::Bool(y)) => x == y,
+            (E::Char(x), E::Char(y)) => x == y,
+            (E::Float(x), E::Float(y)) => x == y,
             #[cfg(feature = "std")]
-            (Addr(x), Addr(y)) if x == y => true,
+            (E::Addr(x), E::Addr(y)) => x == y,
             #[cfg(feature = "alloc")]
             (
-                Literal {
+                E::Literal {
                     expected: lx,
                     found: ly,
                 },
-                Literal {
+                E::Literal {
                     expected: rx,
                     found: ry,
                 },
-            ) if lx == rx && ly == ry => true,
+            ) => lx == rx && ly == ry,
             #[cfg(not(feature = "alloc"))]
             (Literal, Literal) => true,
             (
-                Multi {
+                E::Array {
                     expected: lx,
                     found: ly,
                 },
-                Multi {
+                E::Array {
                     expected: rx,
                     found: ry,
                 },
-            ) if lx == rx && ly == ry => true,
+            ) => lx == rx && ly == ry,
             #[cfg(feature = "alloc")]
-            (Other(x), Other(y)) if x == y => true,
+            (E::Other(x), E::Other(y)) => x == y,
+            #[cfg(feature = "alloc")]
+            (
+                E::MultiContext {
+                    multi_string: lm,
+                    failed_item: lf,
+                    error: le,
+                },
+                E::MultiContext {
+                    multi_string: rm,
+                    failed_item: rf,
+                    error: re,
+                },
+            ) => lm == rm && lf == rf && le == re,
+            #[cfg(feature = "alloc")]
+            (
+                E::Context {
+                    full_string: ls,
+                    failed_item: lf,
+                    error: le,
+                },
+                E::Context {
+                    full_string: rs,
+                    failed_item: rf,
+                    error: re,
+                },
+            ) => ls == rs && lf == rf && le == re,
             #[cfg(not(feature = "alloc"))]
             (Other, Other) => true,
             _ => false,
