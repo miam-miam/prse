@@ -183,5 +183,26 @@ mod tests {
         assert_eq!(Some(Ok('@')), iter.next());
     }
 
+    #[test]
+    fn parse_weird_exprs() {
+        async fn async_parsing() -> u32 {
+            let line = async { "5" };
+            parse!(line.await, "{}")
+        }
+
+        fn try_parsing() -> Result<u32, prse::ParseError> {
+            let line: Result<_, prse::ParseError> = Ok("7");
+            try_parse!(line?, "{}")
+        }
+
+        fn option_parsing() -> Option<u32> {
+            Some(parse!("4\n3".lines().next()?, "{}"))
+        }
+
+        assert_eq!(5, pollster::block_on(async_parsing()));
+        assert_eq!(Ok(7), try_parsing());
+        assert_eq!(Some(4), option_parsing());
+    }
+
     include!("../common.rs");
 }

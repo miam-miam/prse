@@ -9,13 +9,61 @@ use crate::instructions::Instructions;
 #[derive(Clone)]
 pub struct ParseInvocation {
     input: Expr,
+    trailing: Option<TrailingExpr>,
     instructions: Instructions,
     pub try_parse: bool,
+}
+
+// Implementing our own enum so we do not need to enable syn's full feature
+#[derive(Clone)]
+pub enum TrailingExpr {
+    Await {
+        dot_token: Token![.],
+        await_token: Token![await],
+    },
+    Try {
+        question_token: Token![?],
+    },
+}
+
+impl ToTokens for TrailingExpr {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            TrailingExpr::Await {
+                dot_token,
+                await_token,
+            } => {
+                dot_token.to_tokens(tokens);
+                await_token.to_tokens(tokens);
+            }
+            TrailingExpr::Try { question_token } => {
+                question_token.to_tokens(tokens);
+            }
+        }
+    }
+}
+
+impl TrailingExpr {
+    fn parse(stream: ParseStream) -> syn::Result<Option<Self>> {
+        Ok(if stream.peek(Token![?]) {
+            Some(TrailingExpr::Try {
+                question_token: stream.parse()?,
+            })
+        } else if stream.peek(Token![.]) && stream.peek2(Token![await]) {
+            Some(TrailingExpr::Await {
+                dot_token: stream.parse()?,
+                await_token: stream.parse()?,
+            })
+        } else {
+            None
+        })
+    }
 }
 
 impl Parse for ParseInvocation {
     fn parse(stream: ParseStream) -> syn::Result<Self> {
         let input = stream.parse()?;
+        let trailing = TrailingExpr::parse(stream)?;
         let _coma: Token![,] = stream.parse()?;
         let lit = stream.parse::<LitStr>()?;
         let lit_string = lit.value();
@@ -23,6 +71,7 @@ impl Parse for ParseInvocation {
 
         Ok(Self {
             input,
+            trailing,
             try_parse: false,
             instructions,
         })
@@ -35,6 +84,7 @@ impl ToTokens for ParseInvocation {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let func_name = format_ident!("__prse_func");
         let input = &self.input;
+        let trailing = &self.trailing;
         let mut renames = vec![];
         let mut return_idents = vec![];
         let mut func_idents = vec![];
@@ -55,7 +105,7 @@ impl ToTokens for ParseInvocation {
 
         let mut result = quote_spanned! { input.span() =>
             #[allow(clippy::needless_borrow)]
-            let __prse_input: &str = &#input;
+            let __prse_input: &str = &#input #trailing;
         };
 
         result.append_all(if self.try_parse {

@@ -18,3 +18,4 @@ path = "lib.rs"
 rustversion = "1.0.14"
 trybuild = "1.0.73"
 prse = {path = "../../.", default-features = false, features = ["std"]}
+pollster = "0.3.0"
