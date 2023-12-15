@@ -195,6 +195,10 @@ mod tests {
             try_parse!(line?, "{}")
         }
 
+        fn try_macro_call(num: u8) -> Result<u32, prse::ParseError> {
+            try_parse!(format!("{num}{}", try_parsing()?), "{}")
+        }
+
         fn option_parsing() -> Option<u32> {
             Some(parse!("4\n3".lines().next()?, "{}"))
         }
@@ -202,6 +206,7 @@ mod tests {
         assert_eq!(5, pollster::block_on(async_parsing()));
         assert_eq!(Ok(7), try_parsing());
         assert_eq!(Some(4), option_parsing());
+        assert_eq!(Ok(77), try_macro_call(7));
     }
 
     include!("../common.rs");
