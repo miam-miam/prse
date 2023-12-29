@@ -24,7 +24,7 @@ use memchr::memmem::FindIter;
 /// assert_eq!(game.results.next(), Some(Ok(3)));
 /// assert_eq!(game.results.next(), None);
 /// ```
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ParseIter<'a, T: Parse<'a>> {
     finder: FindIter<'a, 'a>,
     is_multi: bool,
