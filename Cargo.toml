@@ -23,7 +23,7 @@ exclude = [".github", "examples", "tests"]
 
 [dependencies]
 prse-derive = { version = "1.1.1", path="prse-derive", default-features = false }
-memchr = { version = "2.6.4", default-features = false }
+memchr = { version = "2.7.1", default-features = false }
 
 [features]
 std = ["alloc", "prse-derive/std", "memchr/std"]
