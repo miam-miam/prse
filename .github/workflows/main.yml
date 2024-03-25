@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: ['1.61', 'stable']
+        version: ['1.63', 'stable']
         dir: ['.', 'tests/test-alloc', 'tests/test-no-std', 'tests/test-std']
     steps:
       - name: Checkout sources

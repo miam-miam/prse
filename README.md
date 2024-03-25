@@ -8,7 +8,7 @@ Prse is a small string parsing library with an emphasis on speed and ease of use
 
 It provides the [`parse!`] macro which allows you to easily parse strings into any type using a format args like syntax.
 
-<sup>Prse currently supports rustc 1.61 and above.</sup>
+<sup>Prse currently supports rustc 1.63 and above.</sup>
 
 [`parse!`]: https://docs.rs/prse/latest/prse/macro.parse.html
 
