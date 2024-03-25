@@ -2,10 +2,10 @@
 name = "prse-derive"
 version = "1.1.1"
 edition = "2021"
-authors = ["miam-miam100 <MiamMiam@mailbox.org>"]
+authors = ["miam-miam <MiamMiam@mailbox.org>"]
 documentation = "https://docs.rs/prse/"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/miam-miam100/prse"
+repository = "https://github.com/miam-miam/prse"
 readme = "../README.md"
 description = "A helper macro crate for the prse crate."
 keywords = ["string", "parsing", "format-args", "no-std"]

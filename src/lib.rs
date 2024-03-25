@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
 
-//! [![github]](https://github.com/miam-miam100/prse)&ensp;[![crates-io]](https://crates.io/crates/prse)&ensp;[![docs-rs]](https://docs.rs/prse)
+//! [![github]](https://github.com/miam-miam/prse)&ensp;[![crates-io]](https://crates.io/crates/prse)&ensp;[![docs-rs]](https://docs.rs/prse)
 //!
 //! [github]: https://img.shields.io/badge/github-8da0cb?style=for-the-badge&labelColor=555555&logo=github
 //! [crates-io]: https://img.shields.io/badge/crates.io-fc8d62?style=for-the-badge&labelColor=555555&logo=rust
