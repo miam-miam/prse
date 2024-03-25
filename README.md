@@ -8,7 +8,7 @@ Prse is a small string parsing library with an emphasis on speed and ease of use
 
 It provides the [`parse!`] macro which allows you to easily parse strings into any type using a format args like syntax.
 
-<sup>Prse currently supports rustc 1.63 and above.</sup>
+<sup>Prse currently supports rustc 1.70 and above.</sup>
 
 [`parse!`]: https://docs.rs/prse/latest/prse/macro.parse.html
 
@@ -48,21 +48,22 @@ use prse::try_parse;
 use std::path::PathBuf;
 
 let input = "cd C:\\windows\\system32";
-let path: Result<PathBuf, _> = try_parse!(input, "cd {}");
+let path: Result<PathBuf, _ > = try_parse!(input, "cd {}");
 
 assert_eq!(path.unwrap(), PathBuf::from("C:\\windows\\system32"));
 ```
 
-Additionally you can use the [`Parse`] derive macro to help you parse custom types. 
+Additionally you can use the [`Parse`] derive macro to help you parse custom types.
 For even more flexibility you can implement the [`Parse`](https://docs.rs/prse/latest/prse/trait.Parse.html)
 trait yourself for fully custom parsing such as hexadecimal number parsing.
+
 ```rust
 use prse::{parse, Parse};
 
 #[derive(Parse, PartialEq, Eq, Debug)]
 #[prse = "({x}, {y})"]
-struct Position { 
-    x: i32, 
+struct Position {
+    x: i32,
     y: i32,
 }
 
@@ -70,8 +71,8 @@ let input = "(1, 3) + (-2, 9)";
 
 let (lhs, rhs): (Position, Position) = parse!(input, "{} + {}");
 
-assert_eq!(lhs, Position {x: 1, y: 3});
-assert_eq!(rhs, Position {x: -2, y: 9});
+assert_eq!(lhs, Position { x: 1, y: 3 });
+assert_eq!(rhs, Position { x: -2, y: 9 });
 ```
 
 [`Parse`]: https://docs.rs/prse/latest/prse/derive.Parse.html
