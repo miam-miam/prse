@@ -20,7 +20,7 @@ proc-macro = true
 syn = { version = "2.0.41", default-features = false, features = ["parsing", "derive", "proc-macro", "clone-impls", "printing"] }
 quote = "1.0.33"
 proc-macro2 = "1.0.70"
-itertools = "0.12.0"
+itertools = "0.13.0"
 
 [features]
 std = ["alloc"]
